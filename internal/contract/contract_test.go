@@ -50,13 +50,13 @@ func TestNewContractFromFile(t *testing.T) {
 	g := o.NewWithT(t)
 
 	t.Run("Filename", func(_ *testing.T) {
-		c, err := NewContractFromFile("../../test/resources/.catalog.yaml")
+		c, err := NewContractFromFile("../../testdata/resources/.catalog.yaml")
 		g.Expect(err).To(o.BeNil())
 		g.Expect(c.Catalog.Resources).ToNot(o.BeNil())
 	})
 
 	t.Run("Directory", func(_ *testing.T) {
-		c, err := NewContractFromFile("../../test/resources")
+		c, err := NewContractFromFile("../../testdata/resources")
 		g.Expect(err).To(o.BeNil())
 		g.Expect(c.Catalog.Resources).ToNot(o.BeNil())
 	})
