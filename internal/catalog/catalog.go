@@ -3,8 +3,10 @@ package catalog
 import (
 	"archive/tar"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -44,19 +46,69 @@ func FetchFromExternals(e config.External, client *api.RESTClient) (Catalog, err
 	return c, nil
 }
 
+
+// Function to generate filesystem
 func GenerateFilesystem(path string, c Catalog, resourceType string) error {
 	for name, resource := range c.Resources {
-		fmt.Fprintf(os.Stderr, "# Fetching resources from %s\n", name)
-		for version, uri := range resource {
-			fmt.Fprintf(os.Stderr, "## Fetching version %s\n", version)
-			if err := fetchAndExtract(path, uri, version, resourceType); err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to fetch resource %s: %v, skipping\n", uri, err)
-				continue
+			fmt.Fprintf(os.Stderr, "# Fetching resources from %s\n", name)
+			for version, uri := range resource {
+					fmt.Fprintf(os.Stderr, "## Fetching version %s\n", version)
+					if err := fetchAndExtract(path, uri, version, resourceType); err != nil {
+							fmt.Fprintf(os.Stderr, "Failed to fetch resource %s: %v, skipping\n", uri, err)
+							continue
+					}
+					
+					// Add source annotation to Task YAML file
+					taskFile := filepath.Join(path, "tasks", name, version, name+".yaml")
+					if err := addSourceAnnotationToTask(taskFile, uri, version); err != nil {
+							fmt.Fprintf(os.Stderr, "Failed to add source annotation to Task YAML file %s: %v\n", taskFile, err)
+					}
 			}
-		}
 	}
 	return nil
 }
+
+// Function to add source annotation to Task YAML file
+func addSourceAnnotationToTask(file, url, version string) error {
+	// Read the Task YAML file
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+			return err
+	}
+
+	// Parse JSON data
+	var task map[string]interface{}
+	if err := json.Unmarshal(data, &task); err != nil {
+			return err
+	}
+
+	// Add source annotation to metadata
+	metadata, ok := task["metadata"].(map[string]interface{})
+	if !ok {
+			return fmt.Errorf("metadata not found in Task YAML file: %s", file)
+	}
+	annotations, ok := metadata["annotations"].(map[string]interface{})
+	if !ok {
+			annotations = make(map[string]interface{})
+	}
+	annotations["source"] = fmt.Sprintf("%s/releases/download/%s", strings.TrimPrefix(url, "https://www.github.com/"), version)
+	metadata["annotations"] = annotations
+	task["metadata"] = metadata
+
+	// Marshal the updated data
+	updatedData, err := json.MarshalIndent(task, "", "  ")
+	if err != nil {
+			return err
+	}
+
+	// Rewrite the Task YAML file with updated metadata
+	if err := ioutil.WriteFile(file, updatedData, 0644); err != nil {
+			return err
+	}
+
+	return nil
+}
+
 
 func fetchAndExtract(path, url, version, resourceType string) error {
 	resp, err := http.Get(url) // nolint:gosec,noctx
