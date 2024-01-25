@@ -1,6 +1,3 @@
-before:
-  hooks:
-    - sed -i 's/devel/{{ .Tag }}/' ./pkg/version.json
 builds:
 - main: .
   binary: catalog-cd

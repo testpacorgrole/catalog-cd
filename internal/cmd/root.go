@@ -1,12 +1,17 @@
 package cmd
 
 import (
+	"fmt"
+	"runtime/debug"
+
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
 	"github.com/openshift-pipelines/catalog-cd/internal/runner"
-
 	"github.com/spf13/cobra"
 	tkncli "github.com/tektoncd/cli/pkg/cli"
 )
+
+// Version is provided by govvv at compile-time
+var Version string
 
 func NewRootCmd(stream *tkncli.Stream) *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -25,5 +30,37 @@ func NewRootCmd(stream *tkncli.Stream) *cobra.Command {
 
 	rootCmd.AddCommand(CatalogCmd(cfg))
 
+	rootCmd.AddCommand(versionCmd(cfg))
+
 	return rootCmd
+}
+
+func versionCmd(cfg *config.Config) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print catalog-cd version",
+		Long:  "Print catalog-cd version",
+		RunE: func(_ *cobra.Command, args []string) error {
+			v := version()
+			if v == "" {
+				fmt.Println("could not determine build information")
+			} else {
+				fmt.Println(v)
+			}
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func version() string {
+	if Version == "" {
+		i, ok := debug.ReadBuildInfo()
+		if !ok {
+			return ""
+		}
+		Version = i.Main.Version
+	}
+	return Version
 }
