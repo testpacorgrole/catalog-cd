@@ -1,0 +1,30 @@
+---
+name: Generate `pull-from` matrix output
+description: |
+  Generates a GitHub Worklow outputs that can then be consumed with `strategy.matrix` from an `externals.yaml` file.
+inputs:
+  version:
+    description: 'Version of catalog-cd to install (tip, latest-release, v0.1.0, etc.)'
+    require: false
+    default: 'latest-release'
+  externals:
+    description: |
+      Path to the `externals.yaml` file
+    required: true
+    default: ./externals.yaml
+outputs:
+  pull-from-list:
+    description: |
+      `stragety.matrix` compatible output containing the "matrix" of pull-from to run.
+runs:
+  using: composite
+  steps:
+    - uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd
+      with:
+        version: ${{ inputs.version }}
+    - id: set-matrix
+      name: Generate catalog matrix
+      run: |
+        set -Eeu
+        echo "pull-from-list=$(catalog-cd catalog externals --config ./externals.yaml)" >> "$GITHUB_OUTPUT"
+        cat "$GITHUB_OUTPUT"
