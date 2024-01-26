@@ -2,6 +2,10 @@
 
 This folder holds several actions that are using `catalog-cd` to be used in GitHub workflows.
 
+## `setup-catalog-cd`
+
+Download the specified version of `catalog-cd` to be available in the next steps.
+
 ## `pull-from`
 
 Pull, validate and (optionally) create a pull-request from a set of parameters (id, link, …)
