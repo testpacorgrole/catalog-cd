@@ -10,7 +10,7 @@ import (
 	tkncli "github.com/tektoncd/cli/pkg/cli"
 )
 
-// Version is provided by govvv at compile-time
+// Version is provided at compile-time
 var Version string
 
 func NewRootCmd(stream *tkncli.Stream) *cobra.Command {
