@@ -1,0 +1,49 @@
+name: use setup-catalog-cd action
+
+on:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  use-action:
+    name: Use Action
+    
+    strategy:
+      matrix:
+        platform:
+          - ubuntu-latest
+          - macos-latest
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version: '1.20'
+          check-latest: 'true'
+
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      # Minimal publish
+      - uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd@main
+
+      - run: catalog-cd version
+
+      - name: Install v0.1.0 release
+        uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd@main
+        with:
+          version: v0.1.0
+
+      - name: Check installed version
+        run: catalog-cd version | grep 0.1.0
+
+      - name: Install from tip
+        uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd@main
+        with:
+          version: tip
+
+      - name: Check installed version (tip)
+        run: |
+          sudo rm /usr/local/bin/catalog-cd # Uninstall previous versions.
+          catalog-cd version

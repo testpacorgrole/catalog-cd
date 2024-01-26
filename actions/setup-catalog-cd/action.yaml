@@ -1,0 +1,42 @@
+---
+name: Generate `pull-from` matrix output
+description: |
+  Generates a GitHub Worklow outputs that can then be consumed with `strategy.matrix` from an `externals.yaml` file.
+inputs:
+  version:
+    description: 'Version of catalog-cd to install (tip, latest-release, v0.1.0, etc.)'
+    require: false
+    default: 'latest-release'
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -ex
+  
+        # Install catalog-cd:
+        # - if version is "tip", install from tip of main.
+        # - if version is "latest-release", look up latest release.
+        # - otherwise, install the specified version.
+        case ${{ inputs.version }} in
+        tip)
+          echo "Installing catalog-cd using go install"
+          go install github.com/openshift-pipelines/catalog-cd@main
+          ;;
+        latest-release)
+          tag=$(curl -L -s -u "username:${{ github.token }}" https://api.github.com/repos/openshift-pipelines/catalog-cd/releases/latest | jq -r '.tag_name')
+          ;;
+        *)
+          tag="${{ inputs.version }}"
+        esac
+  
+        os=${{ runner.os }}
+        if [[ $os == "macOS" ]]; then
+          os="Darwin"
+        fi
+  
+        if [[ ! -z ${tag} ]]; then
+          echo "Installing catalog-cd @ ${tag} for ${os}"
+          curl -fsL https://github.com/openshift-pipelines/catalog-cd/releases/download/${tag}/catalog-cd_${tag:1}_${os}_x86_64.tar.gz | sudo tar xzf - -C /usr/local/bin catalog-cd
+        fi
+  
