@@ -30,13 +30,13 @@ jobs:
 
       - run: catalog-cd version
 
-      - name: Install v0.1.0 release
+      - name: Install v0.1.1 release
         uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd@main
         with:
-          version: v0.1.0
+          version: v0.1.1
 
       - name: Check installed version
-        run: catalog-cd version | grep 0.1.0
+        run: catalog-cd version | grep 0.1.1
 
       - name: Install from tip
         uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd@main
