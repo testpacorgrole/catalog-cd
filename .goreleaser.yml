@@ -1,6 +1,8 @@
 builds:
 - main: .
   binary: catalog-cd
+  ldflags:
+  - -s -w -X internal.cmd.Version={{.Version}}
   env:
   - CGO_ENABLED=0
   flags:
