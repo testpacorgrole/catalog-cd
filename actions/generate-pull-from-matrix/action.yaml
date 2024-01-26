@@ -19,11 +19,12 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd
+    - uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd@main
       with:
         version: ${{ inputs.version }}
     - id: set-matrix
       name: Generate catalog matrix
+      shell: bash
       run: |
         set -Eeu
         echo "pull-from-list=$(catalog-cd catalog externals --config ./externals.yaml)" >> "$GITHUB_OUTPUT"
