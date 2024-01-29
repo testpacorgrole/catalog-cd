@@ -58,15 +58,28 @@ func GenerateFilesystem(path string, c Catalog, resourceType string) error {
 							continue
 					}
 					
-					// Add source annotation to Task YAML file
-					taskFile := filepath.Join(path, "tasks", name, version, name+".yaml")
-					if err := addSourceAnnotationToTask(taskFile, uri, version); err != nil {
-							fmt.Fprintf(os.Stderr, "Failed to add source annotation to Task YAML file %s: %v\n", taskFile, err)
+					// Add source annotation to Task YAML file for each task
+					taskDir := filepath.Join(path, "tasks", name, version)
+					err := filepath.Walk(taskDir, func(file string, info os.FileInfo, err error) error {
+							if err != nil {
+									return err
+							}
+							if !info.IsDir() && filepath.Ext(file) == ".yaml" {
+									fmt.Fprintf(os.Stderr, "Adding source annotation to Task YAML file: %s\n", file)
+									if err := addSourceAnnotationToTask(file, uri, version); err != nil {
+											fmt.Fprintf(os.Stderr, "Failed to add source annotation to Task YAML file %s: %v\n", file, err)
+									}
+							}
+							return nil
+					})
+					if err != nil {
+							fmt.Fprintf(os.Stderr, "Error traversing task directory %s: %v\n", taskDir, err)
 					}
 			}
 	}
 	return nil
 }
+
 
 // Function to add source annotation to Task YAML file
 func addSourceAnnotationToTask(file, url, version string) error {
@@ -91,7 +104,7 @@ func addSourceAnnotationToTask(file, url, version string) error {
 	if !ok {
 			annotations = make(map[string]interface{})
 	}
-	annotations["source"] = fmt.Sprintf("%s/releases/download/%s", strings.TrimPrefix(url, "https://www.github.com/"), version)
+	annotations["source"] = fmt.Sprintf("%s/releases/download/%s", url, version)
 	metadata["annotations"] = annotations
 	task["metadata"] = metadata
 
