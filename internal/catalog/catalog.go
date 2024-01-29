@@ -38,7 +38,7 @@ func FetchFromExternals(e config.External, client *api.RESTClient) (Catalog, err
 		}
 
 		for version := range m {
-			resourcesDownloaldURI := fmt.Sprintf("%s/releases/download/%s/%s", r.URL, version, "resources.tar.gz")
+			resourcesDownloaldURI := fmt.Sprintf("%s/releases/download/%s/%s", r.URL, version, r.ResourcesTarballName)
 			if strings.HasPrefix(version, "v") {
 				version = strings.TrimPrefix(version, "v")
 			}

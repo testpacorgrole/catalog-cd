@@ -29,7 +29,8 @@ func FetchContractsFromRepository(r config.Repository, client *api.RESTClient) (
 		var contractAsset Asset
 		contractFound := false
 		for _, a := range v.Assets {
-			if a.Name == "catalog.yaml" || a.Name == "catalog.yml" {
+			// catalog.yml is there for backward-compatibility
+			if a.Name == r.CatalogName || a.Name == "catalog.yml" {
 				contractFound = true
 				contractAsset = a
 				break
