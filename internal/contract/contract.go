@@ -16,7 +16,9 @@ const (
 	// Version current contract version.
 	Version = "v1"
 	// Filename default contract file name.
-	Filename = ".catalog.yaml"
+	Filename = "catalog.yaml"
+	// Resources default file name
+	ResourcesName = "resources.tar.gz"
 	// SignatureExtension
 	SignatureExtension = "sig"
 )
@@ -90,7 +92,7 @@ func (c *Contract) SaveAs(file string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(file, payload, 0644)
+	return os.WriteFile(file, payload, 0o644)
 }
 
 // NewContractEmpty instantiates a new Contract{} with empty attributes.

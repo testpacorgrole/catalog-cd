@@ -20,10 +20,12 @@ import (
 
 // ReleaseCmd creates a contract (".catalog.yaml") based on Tekton resources files.
 type ReleaseCmd struct {
-	cmd     *cobra.Command // cobra command definition
-	version string         // release version
-	paths   []string       // tekton resource paths
-	output  string         // output path, where the contract and tarball will be written
+	cmd           *cobra.Command // cobra command definition
+	version       string         // release version
+	paths         []string       // tekton resource paths
+	output        string         // output path, where the contract and tarball will be written
+	catalogName   string         // name for the catalog.yaml
+	resourcesName string         // name for the resources tarball containing names
 }
 
 var _ runner.SubCommand = &ReleaseCmd{}
@@ -120,22 +122,22 @@ func (r *ReleaseCmd) Run(_ *config.Config) error {
 		}
 	}
 
-	catalogPath := filepath.Join(r.output, "catalog.yaml")
+	catalogPath := filepath.Join(r.output, r.catalogName)
 	fmt.Fprintf(os.Stderr, "# Saving release contract at %q\n", catalogPath)
 	if err := c.SaveAs(catalogPath); err != nil {
 		return err
 	}
 
 	// Create a tarball (without catalog.yaml
-	tarball := filepath.Join(r.output, "resources.tar.gz")
+	tarball := filepath.Join(r.output, r.resourcesName)
 	fmt.Fprintf(os.Stderr, "# Creating tarball at %q\n", tarball)
-	if err := createTektonResourceArchive(tarball, r.output); err != nil {
+	if err := createTektonResourceArchive(tarball, r.catalogName, r.resourcesName, r.output); err != nil {
 		return err
 	}
 	return nil
 }
 
-func createTektonResourceArchive(archiveFile, output string) error {
+func createTektonResourceArchive(archiveFile, catalogFileName, resourcesFileName, output string) error {
 	// Create output file
 	out, err := os.Create(archiveFile)
 	if err != nil {
@@ -144,9 +146,10 @@ func createTektonResourceArchive(archiveFile, output string) error {
 	defer out.Close()
 
 	// Create the archive
-	return createArchive(output, out)
+	return createArchive(output, catalogFileName, resourcesFileName, out)
 }
-func createArchive(output string, buf io.Writer) error {
+
+func createArchive(output, catalogFileName, resourcesFileName string, buf io.Writer) error {
 	// Create new Writers for gzip and tar
 	// These writers are chained. Writing to the tar writer will
 	// write to the gzip writer which in turn will write to
@@ -162,7 +165,7 @@ func createArchive(output string, buf io.Writer) error {
 		if err != nil {
 			return err
 		}
-		if filepath.Base(file) == "catalog.yaml" || filepath.Base(file) == "resources.tar.gz" {
+		if filepath.Base(file) == catalogFileName || filepath.Base(file) == resourcesFileName {
 			return nil
 		}
 		if fi.IsDir() || !fi.Mode().IsRegular() {
@@ -228,7 +231,9 @@ func NewReleaseCmd() runner.SubCommand {
 	f := r.cmd.PersistentFlags()
 
 	f.StringVar(&r.version, "version", "", "release version")
-	f.StringVar(&r.output, "output", contract.Filename, "path to the release files (to attach to a given release)")
+	f.StringVar(&r.output, "output", ".", "path to the release files (to attach to a given release)")
+	f.StringVar(&r.catalogName, "catalog-name", contract.Filename, "name for the catalog.yaml file")
+	f.StringVar(&r.resourcesName, "resources-tarball-name", contract.ResourcesName, "name for the catalog.yaml file")
 
 	if err := r.cmd.MarkPersistentFlagRequired("version"); err != nil {
 		panic(err)
