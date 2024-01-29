@@ -2,18 +2,21 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"runtime/debug"
 	"strings"
 	"time"
 
+	"github.com/cli/go-gh/v2/pkg/asciisanitizer"
+	"github.com/cli/go-gh/v2/pkg/config"
 	"github.com/cli/go-gh/v2/pkg/term"
 	"github.com/henvic/httpretty"
 	"github.com/thlib/go-timezone-local/tzlocal"
+	"golang.org/x/text/transform"
 )
 
 const (
@@ -62,8 +65,10 @@ func NewHTTPClient(opts ClientOptions) (*http.Client, error) {
 		transport = opts.Transport
 	}
 
+	transport = newSanitizerRoundTripper(transport)
+
 	if opts.CacheDir == "" {
-		opts.CacheDir = filepath.Join(os.TempDir(), "gh-cli-cache")
+		opts.CacheDir = config.CacheDir()
 	}
 	if opts.EnableCache && opts.CacheTTL == 0 {
 		opts.CacheTTL = time.Hour * 24
@@ -219,6 +224,30 @@ func newUnixDomainSocketRoundTripper(socketPath string) http.RoundTripper {
 		DialTLS:           dial,
 		DisableKeepAlives: true,
 	}
+}
+
+type sanitizerRoundTripper struct {
+	rt http.RoundTripper
+}
+
+func newSanitizerRoundTripper(rt http.RoundTripper) http.RoundTripper {
+	return sanitizerRoundTripper{rt: rt}
+}
+
+func (srt sanitizerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := srt.rt.RoundTrip(req)
+	if err != nil || !jsonTypeRE.MatchString(resp.Header.Get(contentType)) {
+		return resp, err
+	}
+	sanitizedReadCloser := struct {
+		io.Reader
+		io.Closer
+	}{
+		Reader: transform.NewReader(resp.Body, &asciisanitizer.Sanitizer{JSON: true}),
+		Closer: resp.Body,
+	}
+	resp.Body = sanitizedReadCloser
+	return resp, err
 }
 
 func currentTimeZone() string {
