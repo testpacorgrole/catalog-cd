@@ -3,7 +3,6 @@ package catalog
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,11 +10,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"gopkg.in/yaml.v2"
+	
 
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/openshift-pipelines/catalog-cd/internal/fetcher"
 	"github.com/openshift-pipelines/catalog-cd/internal/fetcher/config"
 )
+
 
 func FetchFromExternals(e config.External, client *api.RESTClient) (Catalog, error) {
 	c := Catalog{
@@ -50,76 +52,104 @@ func FetchFromExternals(e config.External, client *api.RESTClient) (Catalog, err
 // Function to generate filesystem
 func GenerateFilesystem(path string, c Catalog, resourceType string) error {
 	for name, resource := range c.Resources {
-			fmt.Fprintf(os.Stderr, "# Fetching resources from %s\n", name)
-			for version, uri := range resource {
-					fmt.Fprintf(os.Stderr, "## Fetching version %s\n", version)
-					if err := fetchAndExtract(path, uri, version, resourceType); err != nil {
-							fmt.Fprintf(os.Stderr, "Failed to fetch resource %s: %v, skipping\n", uri, err)
-							continue
-					}
-					
-					// Add source annotation to Task YAML file for each task
-					taskDir := filepath.Join(path, "tasks", name, version)
-					err := filepath.Walk(taskDir, func(file string, info os.FileInfo, err error) error {
-							if err != nil {
-									return err
-							}
-							if !info.IsDir() && filepath.Ext(file) == ".yaml" {
-									fmt.Fprintf(os.Stderr, "Adding source annotation to Task YAML file: %s\n", file)
-									if err := addSourceAnnotationToTask(file, uri, version); err != nil {
-											fmt.Fprintf(os.Stderr, "Failed to add source annotation to Task YAML file %s: %v\n", file, err)
-									}
-							}
-							return nil
-					})
-					if err != nil {
-							fmt.Fprintf(os.Stderr, "Error traversing task directory %s: %v\n", taskDir, err)
-					}
+		fmt.Fprintf(os.Stderr, "# Fetching resources from %s\n", name)
+		for version, uri := range resource {
+			fmt.Fprintf(os.Stderr, "## Fetching version %s\n", version)
+			if err := fetchAndExtract(path, uri, version, resourceType); err != nil {            
+				fmt.Fprintf(os.Stderr, "Failed to fetch resource %s: %v, skipping\n", uri, err)
+				continue
 			}
+				
+			// Add source annotation to Task YAML file for each task
+			taskDir := filepath.Join(path, "tasks", name, version)               
+			// Ensure the taskDir exists before traversing
+			if _, err := os.Stat(taskDir); os.IsNotExist(err) {
+				// Create the taskDir if it doesn't exist
+				if err := os.MkdirAll(taskDir, os.ModePerm); err != nil {
+					fmt.Fprintf(os.Stderr, "Error creating task directory %s: %v\n", taskDir, err)
+					continue
+				}
+			}
+
+			err := filepath.Walk(taskDir, func(file string, info os.FileInfo, err error) error {
+				fmt.Printf("Traversing file: %s\n", file) // Debug statement
+				if err != nil {
+					return err
+				}
+				if !info.IsDir() && filepath.Ext(file) == ".yaml" {
+					fmt.Printf("Found YAML file: %s\n", file) // Debug statement
+					fmt.Fprintf(os.Stderr, "Adding source annotation to Task YAML file: %s\n", file)
+					if err := addSourceAnnotationToTask(file, uri, version); err != nil {
+						fmt.Fprintf(os.Stderr, "Failed to add source annotation to Task YAML file %s: %v\n", file, err)
+					}
+				}
+				return nil
+			})
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error traversing task directory %s: %v\n", taskDir, err)
+			}
+		} 
 	}
-	return nil
+return nil
 }
 
 
-// Function to add source annotation to Task YAML file
 func addSourceAnnotationToTask(file, url, version string) error {
+	// Extract repository URL from the resource tarball URL
+	repoURL := extractRepositoryURL(url)
+	fmt.Fprintf(os.Stdout, "%s\n", repoURL) //checking repoURL format
+
 	// Read the Task YAML file
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-			return err
+		return err
 	}
 
-	// Parse JSON data
+	// Parse YAML data
 	var task map[string]interface{}
-	if err := json.Unmarshal(data, &task); err != nil {
-			return err
+	if err := yaml.Unmarshal(data, &task); err != nil {
+		return err
+	}
+
+	// Access information from metadata and if not present create it
+	metadata, ok := task["metadata"].(map[interface{}]interface{})
+	if !ok {
+		return fmt.Errorf("metadata not found in Task YAML file: %s", file)
+	}
+	annotations, ok := metadata["annotations"].(map[interface{}]interface{})
+	if !ok {
+		annotations = make(map[interface{}]interface{})
 	}
 
 	// Add source annotation to metadata
-	metadata, ok := task["metadata"].(map[string]interface{})
-	if !ok {
-			return fmt.Errorf("metadata not found in Task YAML file: %s", file)
-	}
-	annotations, ok := metadata["annotations"].(map[string]interface{})
-	if !ok {
-			annotations = make(map[string]interface{})
-	}
-	annotations["source"] = fmt.Sprintf("%s/releases/download/%s", url, version)
+	annotations["source"] = repoURL
 	metadata["annotations"] = annotations
 	task["metadata"] = metadata
 
 	// Marshal the updated data
-	updatedData, err := json.MarshalIndent(task, "", "  ")
+	updatedData, err := yaml.Marshal(task)
 	if err != nil {
-			return err
+		fmt.Printf("Error while marshalling updated data is%s", err)
+		return err
 	}
 
 	// Rewrite the Task YAML file with updated metadata
 	if err := ioutil.WriteFile(file, updatedData, 0644); err != nil {
-			return err
+		fmt.Printf("Error while rewriting task YAML is%s", err)
+		return err
 	}
 
 	return nil
+}
+
+// Function to extract repository URL from resource tarball URL
+func extractRepositoryURL(url string) string {
+	// Assuming the resource tarball URL format is consistent: https://github.com/{organization}/{repository}/releases/download/{version}/resources.tar.gz
+	parts := strings.Split(url, "/")
+	if len(parts) < 5 {
+		return ""
+	}
+	return strings.Join(parts[:5], "/")
 }
 
 
@@ -134,6 +164,7 @@ func fetchAndExtract(path, url, version, resourceType string) error {
 	}
 	return untar(path, version, resourceType, resp.Body)
 }
+
 
 func untar(dst, version, resourceType string, r io.Reader) error {
 	gzr, err := gzip.NewReader(r)
