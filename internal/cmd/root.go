@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"runtime/debug"
 
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
@@ -10,7 +11,7 @@ import (
 	tkncli "github.com/tektoncd/cli/pkg/cli"
 )
 
-// Version is provided at compile-time
+// Version is provided at compile-time.
 var Version string
 
 func NewRootCmd(stream *tkncli.Stream) *cobra.Command {
@@ -35,7 +36,7 @@ func NewRootCmd(stream *tkncli.Stream) *cobra.Command {
 	return rootCmd
 }
 
-func versionCmd(cfg *config.Config) *cobra.Command {
+func versionCmd(_ *config.Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print catalog-cd version",
@@ -43,9 +44,9 @@ func versionCmd(cfg *config.Config) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			v := version()
 			if v == "" {
-				fmt.Println("could not determine build information")
+				fmt.Fprintln(os.Stderr, "could not determine build information")
 			} else {
-				fmt.Println(v)
+				fmt.Fprintln(os.Stderr, v)
 			}
 			return nil
 		},

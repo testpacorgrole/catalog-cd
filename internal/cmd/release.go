@@ -105,7 +105,7 @@ func (r *ReleaseCmd) Run(_ *config.Config) error {
 				if errors.Is(err, contract.ErrTektonResourceUnsupported) {
 					return err
 				}
-				fmt.Printf("# WARNING: Skipping file %q!\n", f)
+				fmt.Fprintf(os.Stderr, "# WARNING: Skipping file %q!\n", f)
 			}
 			// Copy it to output
 			if err := copyFile(f, filepath.Join(resourceFolder, filepath.Base(f))); err != nil {
@@ -175,7 +175,7 @@ func createArchive(output, catalogFileName, resourcesFileName string, buf io.Wri
 	})
 }
 
-func addToArchive(tw *tar.Writer, filename string, output string) error {
+func addToArchive(tw *tar.Writer, filename, output string) error {
 	// Open the file which will be written into the archive
 	file, err := os.Open(filename)
 	if err != nil {

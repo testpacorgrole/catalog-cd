@@ -28,7 +28,7 @@ inputs:
 outputs:
   pull-from-list:
     description: |
-      `stragety.matrix` compatible output containing the "matrix" of pull-from to run.
+      `strategy.matrix` compatible output containing the "matrix" of pull-from to run.
 runs:
   using: composite
   steps:

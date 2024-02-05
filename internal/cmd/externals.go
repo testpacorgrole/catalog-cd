@@ -68,7 +68,7 @@ type GitHubMatrixObject struct {
 	Include []GitHubRunObject `json:"include"`
 }
 
-// Run
+// Run.
 func (v *ExternalsCmd) Run(cfg *config.Config) error {
 	e, err := fc.LoadExternal(v.config)
 	if err != nil {

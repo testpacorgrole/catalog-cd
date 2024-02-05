@@ -104,7 +104,7 @@ spec:
       mkdir output
       cp $(params.app) ./output
       # FIXME: extra things to copy ?
-      
+
       if [[ "$(workspaces.dockerconfig.bound)" == "true" ]]; then
         # if config.json exists at workspace root, we use that
         if test -f "$(workspaces.dockerconfig.path)/config.json"; then

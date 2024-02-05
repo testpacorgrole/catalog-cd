@@ -21,6 +21,7 @@ func chomp(s string) string {
 }
 
 // formatType when type is not informed the type "string" returned.
+// nolint:forcetypeassert
 func formatType(s interface{}) string {
 	if s == nil || s.(string) == "" {
 		return "string"
@@ -28,6 +29,7 @@ func formatType(s interface{}) string {
 	return s.(string)
 }
 
+// nolint:forcetypeassert
 func anySliceJoin(slice []interface{}, separator string) string {
 	stringSlice := []string{}
 	for _, j := range slice {
@@ -43,6 +45,7 @@ func formatValue(value interface{}) string {
 	}
 
 	v := reflect.ValueOf(value)
+	// nolint:exhaustive
 	switch v.Kind() {
 	case reflect.String:
 		if v.String() == "" {
@@ -53,7 +56,7 @@ func formatValue(value interface{}) string {
 		if v.Len() == 0 {
 			return "`[]` (empty)"
 		}
-		return fmt.Sprintf("`[ %s ]`", anySliceJoin(v.Interface().([]interface{}), ", "))
+		return fmt.Sprintf("`[ %s ]`", anySliceJoin(v.Interface().([]interface{}), ", ")) // nolint:forcetypeassert
 	case reflect.Map:
 		iter := v.MapRange()
 		slice := []string{}
@@ -68,7 +71,7 @@ func formatValue(value interface{}) string {
 
 // formatOptional makes sure "false" is printed when the informed variable is nil.
 func formatOptional(s interface{}) string {
-	if s == nil || !s.(bool) {
+	if s == nil || !s.(bool) { // nolint:forcetypeassert
 		return "false"
 	}
 	return "true"

@@ -22,7 +22,7 @@ func getAttribute(set map[string]interface{}, entry string) (string, error) {
 	if value == "" {
 		return "", fmt.Errorf("%w: %q is empty", ErrRequiredAttribute, entry)
 	}
-	return value.(string), nil
+	return value.(string), nil // nolint:forcetypeassert
 }
 
 // isNameValidFn checks if the name attribute is valid.

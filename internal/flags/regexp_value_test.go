@@ -38,7 +38,7 @@ func TestNewRegexpValue(t *testing.T) {
 			// when Set is successful asserting the corresponding expresion is appended on the
 			// original slice instance
 			if !tt.wantErr {
-				g.Expect(len(values)).NotTo(gomega.BeZero())
+				g.Expect(values).NotTo(gomega.BeEmpty())
 				g.Expect(values[len(values)-1].String()).To(gomega.Equal(tt.raw))
 			}
 		})

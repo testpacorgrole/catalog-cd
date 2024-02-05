@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-// Scanner scans files using the informed glob pattern, returns a slice with the the files
+// Scanner scans files using the informed glob pattern, returns a slice with the files
 // matching the expression.
 func Scanner(pattern string) ([]string, error) {
 	patterns := []string{}

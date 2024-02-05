@@ -31,17 +31,13 @@ func FetchFromExternals(e config.External, client *api.RESTClient) (Catalog, err
 			return c, err
 		}
 		for _, v := range r.IgnoreVersions {
-			if _, ok := m[v]; ok {
-				// Remove ignored versions from map
-				delete(m, v)
-			}
+			// Remove ignored versions from map
+			delete(m, v)
 		}
 
 		for version := range m {
 			resourcesDownloaldURI := fmt.Sprintf("%s/releases/download/%s/%s", r.URL, version, r.ResourcesTarballName)
-			if strings.HasPrefix(version, "v") {
-				version = strings.TrimPrefix(version, "v")
-			}
+			version = strings.TrimPrefix(version, "v")
 			c.Resources[r.Name][version] = resourcesDownloaldURI
 		}
 	}
@@ -63,12 +59,13 @@ func GenerateFilesystem(path string, c Catalog, resourceType string) error {
 }
 
 func fetchAndExtract(path, url, version, resourceType string) error {
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) // nolint:gosec,noctx
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Status error: %v", resp.StatusCode)
+		return fmt.Errorf("status error: %v", resp.StatusCode)
 	}
 	return untar(path, version, resourceType, resp.Body)
 }
@@ -131,7 +128,7 @@ func untar(dst, version, resourceType string, r io.Reader) error {
 				return err
 			}
 			// copy over contents
-			if _, err := io.Copy(f, tr); err != nil {
+			if _, err := io.Copy(f, tr); err != nil { // nolint:gosec
 				return err
 			}
 			// manually close here after each file operation; defering would cause each file close

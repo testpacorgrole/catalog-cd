@@ -1,19 +1,24 @@
 # `catalog-cd` actions
 
-This folder holds several actions that are using `catalog-cd` to be used in GitHub workflows.
+This folder holds several actions that are using `catalog-cd` to be
+used in GitHub workflows.
 
 ## `setup-catalog-cd`
 
-Download the specified version of `catalog-cd` to be available in the next steps.
+Download the specified version of `catalog-cd` to be available in the
+next steps.
 
 ## `pull-from`
 
-Pull, validate and (optionally) create a pull-request from a set of parameters (id, link, …)
+Pull, validate and (optionally) create a pull-request from a set of
+parameters (id, link, …)
 
 ## `generate-pull-from-matrix`
 
-Generates a GitHub Worklow outputs that can then be consumed with `strategy.matrix` from an `externals.yaml` file.
+Generates a GitHub Worklow outputs that can then be consumed with
+`strategy.matrix` from an `externals.yaml` file.
 
 ## Other possible ideas
 
-- `release` to quickly and easily release a task or set of tasks using `catalog-cd`.
+- `release` to quickly and easily release a task or set of tasks using
+  `catalog-cd`.

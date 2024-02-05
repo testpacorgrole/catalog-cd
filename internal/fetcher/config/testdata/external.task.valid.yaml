@@ -2,6 +2,6 @@ repositories:
 - name: sbr-golang
   url: https://github.com/shortbrain/golang
 - url: https://github.com/openshift-pipelines/task-git
-  types: [ tasks ]
+  types: [tasks]
 - url: https://github.com/openshift-pipelines/task-containers
-  types: [ tasks ]
+  types: [tasks]

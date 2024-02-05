@@ -43,7 +43,7 @@ func (v *GenerateCmd) Complete(_ *config.Config, args []string) error {
 	}
 
 	if len(args) != 1 {
-		return fmt.Errorf("you must specify a target to generate the catalog in.")
+		return fmt.Errorf("you must specify a target to generate the catalog in")
 	}
 	v.target = args[0]
 	return nil

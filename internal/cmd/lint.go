@@ -63,7 +63,7 @@ func (l *LintCmd) Run(cfg *config.Config) error {
 					return err
 				}
 				if !isYaml(path) {
-					fmt.Println("Ignoring non-yaml file", path)
+					fmt.Println("Ignoring non-yaml file", path) // nolint:forbidigo
 					return nil
 				}
 				wg.Add(1)
@@ -105,7 +105,7 @@ func NewLintCmd() runner.SubCommand {
 }
 
 // isDirectory determines if a file represented
-// by `path` is a directory or not
+// by `path` is a directory or not.
 func isDirectory(path string) (bool, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {

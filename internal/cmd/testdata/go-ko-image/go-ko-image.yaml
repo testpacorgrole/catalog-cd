@@ -115,7 +115,7 @@ spec:
       set -x
       ko build --base-import-paths ${KO_FLAGS} $(params.package) > $(results.IMAGE_URL.path)
       set +x
-      
+
       KO_OUTPUT=$(results.IMAGE_URL.path)
       echo -n ${CRANE_OUTPUT#*@} > $(results.IMAGE_DIGEST.path)
     env:
@@ -142,7 +142,7 @@ spec:
         echo -n "" > $(resutls.IMAGE_URL.path)
         exit 0
       fi
-      
+
       if [[ "$(workspaces.dockerconfig.bound)" == "true" ]]; then
         # if config.json exists at workspace root, we use that
         if test -f "$(workspaces.dockerconfig.path)/config.json"; then
@@ -161,7 +161,7 @@ spec:
       if [[ -z "$(params.image.envs)" ]]; then
         echo "Not doing anything as there is no envs specified"
       fi
-      
+
       MUTATE_FLAGS=" --tag $(params.image.prefix)/$(params.app)"
       # envs
       while IFS=';' read -ra ENVS; do
@@ -169,7 +169,7 @@ spec:
         MUTATE_FLAGS="${MUTATE_FLAGS} --env ${ENV}"
       done
       done <<< "$(params.image.envs)"
-      
+
       crane mutate $(cat $(results.IMAGE_URL.path)) \
         ${MUTATE_FLAGS} > crane_output
       CRANE_OUTPUT=$(cat crane_output)

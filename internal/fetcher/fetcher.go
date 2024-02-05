@@ -14,12 +14,12 @@ func FetchContractsFromRepository(r config.Repository, client *api.RESTClient) (
 	m := map[string]*contract.Contract{}
 
 	if !strings.HasPrefix(r.URL, "https://github.com") {
-		return m, fmt.Errorf("Non-github repository not supported: %s", r.URL)
+		return m, fmt.Errorf("non-github repository not supported: %s", r.URL)
 	}
 	repo := strings.TrimPrefix(r.URL, "https://github.com/")
 	versions, err := fetchVersions(repo, client)
 	if err != nil {
-		return m, fmt.Errorf("Failed to fetch versions from %s: %w", r.URL, err)
+		return m, fmt.Errorf("failed to fetch versions from %s: %w", r.URL, err)
 	}
 	for _, v := range versions {
 		if v.PreRelease || v.Draft {
@@ -43,7 +43,7 @@ func FetchContractsFromRepository(r config.Repository, client *api.RESTClient) (
 		// Load contract from asset
 		contract, err := contract.NewContractFromURL(contractAsset.DownloadURL)
 		if err != nil {
-			return m, fmt.Errorf("Failed to load asset %s from %s: %w", contractAsset.Name, v.TagName, err)
+			return m, fmt.Errorf("failed to load asset %s from %s: %w", contractAsset.Name, v.TagName, err)
 		}
 		m[v.TagName] = contract
 	}
@@ -62,7 +62,7 @@ func fetchVersions(github string, client *api.RESTClient) ([]Version, error) {
 type Version struct {
 	Name       string
 	TagName    string `json:"tag_name"`
-	Id         int
+	ID         int    `json:"id"`
 	Draft      bool
 	PreRelease bool
 	Assets     []Asset
@@ -71,7 +71,7 @@ type Version struct {
 }
 
 type Asset struct {
-	Id          int
+	ID          int    `json:"id"`
 	URL         string `json:"url"`
 	Name        string
 	Label       string

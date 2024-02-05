@@ -2,11 +2,9 @@ package linter
 
 import (
 	"errors"
-	// "fmt"
 
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
 	"github.com/openshift-pipelines/catalog-cd/internal/resource"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

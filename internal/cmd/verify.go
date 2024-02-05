@@ -3,12 +3,12 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/openshift-pipelines/catalog-cd/internal/attestation"
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
 	"github.com/openshift-pipelines/catalog-cd/internal/contract"
 	"github.com/openshift-pipelines/catalog-cd/internal/runner"
-
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ Verifies the signature of all resources described on the contract. The subcomman
 either a contract file as argument, or a directory containing the contract using default
 name. By default it searches the current directory.
 
-In order to verify the signature the public-key is required, it's specified either on the the
+In order to verify the signature the public-key is required, it's specified either on the
 catalog contract, or using the flag "--public-key".
 `
 
@@ -63,7 +63,7 @@ func (v *VerifyCmd) Run(cfg *config.Config) error {
 		return err
 	}
 	return v.c.VerifyResources(v.cmd.Context(), func(ctx context.Context, blobRef, sigRef string) error {
-		fmt.Printf("# Verifying resource %q against signature %q...\n", blobRef, sigRef)
+		fmt.Fprintf(os.Stderr, "# Verifying resource %q against signature %q...\n", blobRef, sigRef)
 		return helper.Verify(ctx, blobRef, sigRef)
 	})
 }

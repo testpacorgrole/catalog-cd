@@ -1,6 +1,6 @@
 repositories:
 - name: sbr-golang
   url: https://github.com/shortbrain/golang-tasks
-  types: [ pipelines ]
+  types: [pipelines]
   catalog-name: catalog.foo.yaml
   resources-tarball-name: resources.foo.tar.gz

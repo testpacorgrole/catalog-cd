@@ -9,13 +9,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// External is a representation of the configuration for specifying repositories we have to pull from
+// External is a representation of the configuration for specifying repositories we have to pull from.
 type External struct {
 	// Repositories defines the repositories to pull from
 	Repositories []Repository
 }
 
-// Repository represent a git repository
+// Repository represent a git repository.
 type Repository struct {
 	Name string
 	URL  string
@@ -26,7 +26,7 @@ type Repository struct {
 	ResourcesTarballName string   `json:"resources-tarball-name"`
 }
 
-// setDefaults sets the default values for the configuration
+// setDefaults sets the default values for the configuration.
 func setDefaults(e External) External {
 	for i, r := range e.Repositories {
 		if r.CatalogName == "" {
@@ -44,10 +44,10 @@ func LoadExternal(filename string) (External, error) {
 	var c External
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return External{}, fmt.Errorf("Could not load external configuration from %s: %w", filename, err)
+		return External{}, fmt.Errorf("could not load external configuration from %s: %w", filename, err)
 	}
 	if err := yaml.Unmarshal(data, &c); err != nil {
-		return External{}, fmt.Errorf("Could not load external configuration from %s: %w", filename, err)
+		return External{}, fmt.Errorf("could not load external configuration from %s: %w", filename, err)
 	}
 	c = setDefaults(c)
 	return c, nil

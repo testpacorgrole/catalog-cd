@@ -50,7 +50,7 @@ func (a *Attestation) Sign(payloadPath, outputSignature string) error {
 	return err
 }
 
-// Verify verifies the resource signature
+// Verify verifies the resource signature.
 func (a *Attestation) Verify(ctx context.Context, blobRef, sigRef string) error {
 	v := verify.VerifyBlobCmd{
 		KeyOpts:    a.keyOpts,

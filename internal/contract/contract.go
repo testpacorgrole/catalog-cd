@@ -17,9 +17,9 @@ const (
 	Version = "v1"
 	// Filename default contract file name.
 	Filename = "catalog.yaml"
-	// Resources default file name
+	// Resources default file name.
 	ResourcesName = "resources.tar.gz"
-	// SignatureExtension
+	// SignatureExtension.
 	SignatureExtension = "sig"
 )
 
@@ -92,7 +92,7 @@ func (c *Contract) SaveAs(file string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(file, payload, 0o644)
+	return os.WriteFile(file, payload, 0o644) // nolint: gosec
 }
 
 // NewContractEmpty instantiates a new Contract{} with empty attributes.
@@ -138,16 +138,17 @@ func NewContractFromFile(location string) (*Contract, error) {
 
 // NewContractFromURL instantiates a new Contract{} from a URL.
 func NewContractFromURL(url string) (*Contract, error) {
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) // nolint:gosec,noctx
 	if err != nil {
-		return nil, fmt.Errorf("Could not load contract from %s: %w", url, err)
+		return nil, fmt.Errorf("could not load contract from %s: %w", url, err)
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status error: %v", resp.StatusCode)
+		return nil, fmt.Errorf("status error: %v", resp.StatusCode)
 	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Could not load contract from %s: %w", url, err)
+		return nil, fmt.Errorf("could not load contract from %s: %w", url, err)
 	}
 	return NewContractFromData(data)
 }

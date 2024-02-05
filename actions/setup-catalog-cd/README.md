@@ -11,8 +11,12 @@ This actions install and setup `catalog-cd` in a GitHub Workflow.
     version: 'latest-release'
 ```
 
-If you use `tip` it will try to do a `go install` (from the `main` branch) ; in order for this to work, you will need to use `actions/setup-go` prior to this action.
-For any other value (`latest-release`, or any version number), `setup-go` is not required.
+If you use `tip` it will try to do a `go install` (from the `main`
+branch) ; in order for this to work, you will need to use
+`actions/setup-go` prior to this action.  
+
+For any other value (`latest-release`, or any version number),
+`setup-go` is not required.
 
 ## Examples
 

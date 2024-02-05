@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/openshift-pipelines/catalog-cd/internal/attestation"
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
 	"github.com/openshift-pipelines/catalog-cd/internal/contract"
 	"github.com/openshift-pipelines/catalog-cd/internal/runner"
-
 	"github.com/spf13/cobra"
 )
 
@@ -54,7 +54,7 @@ func (s *SignCmd) Run(_ *config.Config) error {
 		return err
 	}
 	if err = s.c.SignResources(func(payladPath, outputSignature string) error {
-		fmt.Printf("# Signing resource %q on %q...\n", payladPath, outputSignature)
+		fmt.Fprintf(os.Stderr, "# Signing resource %q on %q...\n", payladPath, outputSignature)
 		return helper.Sign(payladPath, outputSignature)
 	}); err != nil {
 		return err

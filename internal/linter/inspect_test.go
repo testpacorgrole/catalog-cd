@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// nolint:dupl
 func Test_lowercaseSliceMapLinter(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -45,6 +46,7 @@ func Test_lowercaseSliceMapLinter(t *testing.T) {
 	}
 }
 
+// nolint:dupl
 func Test_uppercaseSliceMapLinter(t *testing.T) {
 	tests := []struct {
 		name    string

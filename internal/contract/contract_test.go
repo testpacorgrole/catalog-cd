@@ -20,9 +20,9 @@ func TestNewContractEmpty(t *testing.T) {
 		version := "0.0.1"
 
 		err := c.AddResourceFile(taskFile, version)
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).ToNot(o.HaveOccurred())
 		g.Expect(c.Catalog.Resources).ToNot(o.BeNil())
-		g.Expect(len(c.Catalog.Resources.Tasks)).To(o.Equal(1))
+		g.Expect(c.Catalog.Resources.Tasks).To(o.HaveLen(1))
 
 		resource := c.Catalog.Resources.Tasks[0]
 		g.Expect(resource).ToNot(o.BeNil())
@@ -34,14 +34,14 @@ func TestNewContractEmpty(t *testing.T) {
 
 	t.Run("Print", func(_ *testing.T) {
 		contractBytes, err := c.Print()
-		g.Expect(err).To(o.BeNil())
-		g.Expect(len(contractBytes)).NotTo(o.Equal(0))
+		g.Expect(err).ToNot(o.HaveOccurred())
+		g.Expect(contractBytes).NotTo(o.BeEmpty())
 	})
 
 	t.Run("Output", func(_ *testing.T) {
 		contractFile := path.Join(testDir, Filename)
 		err := c.SaveAs(contractFile)
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).ToNot(o.HaveOccurred())
 		g.Expect(contractFile).To(o.BeAnExistingFile())
 	})
 }
@@ -51,13 +51,13 @@ func TestNewContractFromFile(t *testing.T) {
 
 	t.Run("Filename", func(_ *testing.T) {
 		c, err := NewContractFromFile("../../testdata/resources/.catalog.yaml")
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).ToNot(o.HaveOccurred())
 		g.Expect(c.Catalog.Resources).ToNot(o.BeNil())
 	})
 
 	t.Run("Directory", func(_ *testing.T) {
 		c, err := NewContractFromFile("../../testdata/resources")
-		g.Expect(err).To(o.BeNil())
+		g.Expect(err).ToNot(o.HaveOccurred())
 		g.Expect(c.Catalog.Resources).ToNot(o.BeNil())
 	})
 }
