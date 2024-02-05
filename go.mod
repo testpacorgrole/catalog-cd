@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/cli/go-gh/v2 v2.4.0
-	github.com/go-errors/errors v1.0.1
+	github.com/go-errors/errors v1.5.1
 	github.com/onsi/gomega v1.31.1
 	github.com/sigstore/cosign/v2 v2.2.0
 	github.com/spf13/cobra v1.8.0
