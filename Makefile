@@ -1,5 +1,8 @@
 BIN = catalog-cd
-GOLANGCI_LINT=golangci-lint
+
+DOTBIN      = $(CURDIR)/.bin
+GOLANGCI_VERSION = v1.52.2
+
 TIMEOUT_UNIT = 20m
 
 GOFLAGS ?= -v
@@ -12,6 +15,13 @@ MD_FILES := $(shell find . -type f -regex ".*md"  -not -regex '^./vendor/.*'  -n
 ARGS ?=
 
 .EXPORT_ALL_VARIABLES:
+
+$(DOTBIN):
+	@mkdir -p $@
+
+GOLANGCILINT = $(DOTBIN)/golangci-lint
+$(DOTBIN)/golangci-lint: $(DOTBIN) ; $(info $(M) getting golangci-lint $(GOLANGCI_VERSION))
+	GOBIN=$(DOTBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_VERSION)
 
 all: help
 
@@ -44,9 +54,9 @@ catalog-cd-watch: ## Watch go files and rebuild catalog-cd on changes (needs ent
 lint: lint-go lint-yaml lint-md lint-shell ## run all linters
 
 .PHONY: lint-go
-lint-go: ## runs go linter on all go files
+lint-go: $(GOLANGCILINT) ## runs go linter on all go files
 	@echo "Linting go files..."
-	@$(GOLANGCI_LINT) run ./... --modules-download-mode=vendor \
+	@$(GOLANGCILINT) run ./... --modules-download-mode=vendor \
 							--max-issues-per-linter=0 \
 							--max-same-issues=0 \
 							--deadline $(TIMEOUT_UNIT)
