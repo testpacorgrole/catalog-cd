@@ -10,7 +10,6 @@ permissions:
 name: build-test
 
 jobs:
-  linting:
   build:
     runs-on: ubuntu-latest
     steps:
