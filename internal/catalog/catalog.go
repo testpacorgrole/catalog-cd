@@ -52,44 +52,44 @@ func FetchFromExternals(e config.External, client *api.RESTClient) (Catalog, err
 // Function to generate filesystem
 func GenerateFilesystem(path string, c Catalog, resourceType string) error {
 	for name, resource := range c.Resources {
-		fmt.Fprintf(os.Stderr, "# Fetching resources from %s\n", name)
-		for version, uri := range resource {
-			fmt.Fprintf(os.Stderr, "## Fetching version %s\n", version)
-			if err := fetchAndExtract(path, uri, version, resourceType); err != nil {            
-				fmt.Fprintf(os.Stderr, "Failed to fetch resource %s: %v, skipping\n", uri, err)
+	    fmt.Fprintf(os.Stderr, "# Fetching resources from %s\n", name)
+	    for version, uri := range resource {
+		fmt.Fprintf(os.Stderr, "## Fetching version %s\n", version)
+		if err := fetchAndExtract(path, uri, version, resourceType); err != nil {            
+			fmt.Fprintf(os.Stderr, "Failed to fetch resource %s: %v, skipping\n", uri, err)
+			continue
+		}
+				
+		// Add source annotation to Task YAML file for each task
+		taskDir := filepath.Join(path, "tasks", name, version)               
+		// Ensure the taskDir exists before traversing
+		if _, err := os.Stat(taskDir); os.IsNotExist(err) {
+			// Create the taskDir if it doesn't exist
+			if err := os.MkdirAll(taskDir, os.ModePerm); err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating task directory %s: %v\n", taskDir, err)
 				continue
 			}
-				
-			// Add source annotation to Task YAML file for each task
-			taskDir := filepath.Join(path, "tasks", name, version)               
-			// Ensure the taskDir exists before traversing
-			if _, err := os.Stat(taskDir); os.IsNotExist(err) {
-				// Create the taskDir if it doesn't exist
-				if err := os.MkdirAll(taskDir, os.ModePerm); err != nil {
-					fmt.Fprintf(os.Stderr, "Error creating task directory %s: %v\n", taskDir, err)
-					continue
-				}
-			}
+		}
 
-			err := filepath.Walk(taskDir, func(file string, info os.FileInfo, err error) error {
-				fmt.Printf("Traversing file: %s\n", file) // Debug statement
-				if err != nil {
-					return err
-				}
-				if !info.IsDir() && filepath.Ext(file) == ".yaml" {
-					fmt.Printf("Found YAML file: %s\n", file) // Debug statement
-					fmt.Fprintf(os.Stderr, "Adding source annotation to Task YAML file: %s\n", file)
-					if err := addSourceAnnotationToTask(file, uri, version); err != nil {
-						fmt.Fprintf(os.Stderr, "Failed to add source annotation to Task YAML file %s: %v\n", file, err)
-					}
-				}
-				return nil
-			})
+		err := filepath.Walk(taskDir, func(file string, info os.FileInfo, err error) error {
+			fmt.Printf("Traversing file: %s\n", file) // Debug statement
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error traversing task directory %s: %v\n", taskDir, err)
+				return err
 			}
-		} 
-	}
+			if !info.IsDir() && filepath.Ext(file) == ".yaml" {
+				fmt.Printf("Found YAML file: %s\n", file) // Debug statement
+				fmt.Fprintf(os.Stderr, "Adding source annotation to Task YAML file: %s\n", file)
+				if err := addSourceAnnotationToTask(file, uri, version); err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to add source annotation to Task YAML file %s: %v\n", file, err)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error traversing task directory %s: %v\n", taskDir, err)
+		}
+	} 
+}
 return nil
 }
 
