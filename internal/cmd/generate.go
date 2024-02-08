@@ -90,7 +90,7 @@ func NewCatalogGenerateCmd() runner.SubCommand {
 			Use:          "generate",
 			Args:         cobra.ExactArgs(1),
 			Long:         generateLongDescription,
-			Short:        "Verifies the resource file signature",
+			Short:        "Generates a file-based catalog in the target folder, based of a configuration file.",
 			SilenceUsage: true,
 		},
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/openshift-pipelines/catalog-cd/internal/catalog"
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
+	"github.com/openshift-pipelines/catalog-cd/internal/contract"
 	fc "github.com/openshift-pipelines/catalog-cd/internal/fetcher/config"
 	"github.com/openshift-pipelines/catalog-cd/internal/runner"
 	"github.com/spf13/cobra"
@@ -15,22 +16,25 @@ import (
 
 // GenerateFromExternalCmd represents the "generate" subcommand to generate the signature of a resource file.
 type GenerateFromExternalCmd struct {
-	cmd            *cobra.Command // cobra command definition
-	name           string         // name of the repository to pull (a bit useless)
-	url            string         // url of the repository to pull
-	resourceType   string         // type of resource to pull
-	ignoreVersions string         // versions to ignore while pulling
-	target         string         // path to the folder where we want to generate the catalog
+	cmd                 *cobra.Command // cobra command definition
+	name                string         // name of the repository to pull (a bit useless)
+	url                 string         // url of the repository to pull
+	resourceType        string         // type of resource to pull
+	ignoreVersions      string         // versions to ignore while pulling
+	target              string         // path to the folder where we want to generate the catalog
+	catalogName         string         // name of the contract file to pull (default catalog.yaml)
+	resourceTarballName string         // name of the resources file to pull (default resources.tar.gz)
 }
 
 var _ runner.SubCommand = &GenerateFromExternalCmd{}
 
-const generateLongFromExternalDescription = `# catalog-cd generate
+const generateLongFromExternalDescription = `# catalog-cd generate-partial
 
-Generates a file-based catalog in the target folder, based of a configuration file.
+Generates a partial file-based catalog in the target folder, based of a set of flags.
 
-  $ catalog-cd generate \
-      --config="/path/to/external.yaml" \
+  $ catalog-cd generate-from \
+      --name="foo" --url="https://github.com/openshift-pipelines/task-containers" \
+      --type="tasks" \
       /path/to/catalog/target
 `
 
@@ -80,9 +84,11 @@ func (v *GenerateFromExternalCmd) Run(cfg *config.Config) error {
 
 	e := fc.External{
 		Repositories: []fc.Repository{{
-			Name:           name,
-			URL:            v.url,
-			IgnoreVersions: ignoreVersions,
+			Name:                 name,
+			URL:                  v.url,
+			IgnoreVersions:       ignoreVersions,
+			CatalogName:          v.catalogName,
+			ResourcesTarballName: v.resourceTarballName,
 		}},
 	}
 	c, err := catalog.FetchFromExternals(e, ghclient)
@@ -100,7 +106,7 @@ func NewCatalogGenerateFromExternalCmd() runner.SubCommand {
 			Use:          "generate-from",
 			Args:         cobra.ExactArgs(1),
 			Long:         generateLongFromExternalDescription,
-			Short:        "Verifies the resource file signature",
+			Short:        "Generates a partial file-based catalog in the target folder, based of a set of flags.",
 			SilenceUsage: true,
 		},
 	}
@@ -110,6 +116,8 @@ func NewCatalogGenerateFromExternalCmd() runner.SubCommand {
 	f.StringVar(&v.url, "url", "", "url of the repository to pull")
 	f.StringVar(&v.resourceType, "type", "", "type of resource to pull")
 	f.StringVar(&v.ignoreVersions, "ignore-versions", "", "versions to ignore while pulling")
+	f.StringVar(&v.catalogName, "catalog-name", contract.Filename, "contract name to pull")
+	f.StringVar(&v.resourceTarballName, "resource-tarball-name", contract.ResourcesName, "resource file to pull")
 
 	return v
 }

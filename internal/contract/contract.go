@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"gopkg.in/yaml.v3"
 )
 
@@ -30,34 +29,12 @@ type Repository struct {
 	Description string `json:"description"`
 }
 
-// ResourceProbe describes a single test-case for a Tekton resource managed by the
-// repository, serves as inputs for "catalog-cd probe".
-type ResourceProbe struct {
-	// Name testa-case unique name.
-	Name string `json:"name"`
-	// ResourceName the name of the Tekton resource, present on ".catalog.resources".
-	ResourceName string `json:"resourceName"`
-	// Workspaces slice of Tekton workspace-bindings for the test-case.
-	Workspaces []v1beta1.WorkspaceBinding `json:"workspaces"`
-	// Params slice of Tekton Params for the test-case
-	Params []v1beta1.Param `json:"params"`
-}
-
-// Probe contains all the test-cases for the Tekton resources managed by the repository.
-type Probe struct {
-	// Tasks Tekton Tasks tests.
-	Tasks []ResourceProbe `json:"tasks"`
-	// Pipelines Tekton Pipelines tests.
-	Pipelines []ResourceProbe `json:"pipelines"`
-}
-
 // Catalog describes the contents of a repository part of a "catalog" of Tekton resources,
 // including repository metadata, inventory of Tekton resources, test-cases and more.
 type Catalog struct {
 	Repository  *Repository  `json:"repository"`  // repository long description
 	Attestation *Attestation `json:"attestation"` // software supply provenance
 	Resources   *Resources   `json:"resources"`   // inventory of Tekton resources
-	Probe       *Probe       `json:"probe"`       // test-cases for the managed resources
 }
 
 // Contract contains a versioned catalog.
@@ -105,10 +82,6 @@ func NewContractEmpty() *Contract {
 			Resources: &Resources{
 				Tasks:     []*TektonResource{},
 				Pipelines: []*TektonResource{},
-			},
-			Probe: &Probe{
-				Tasks:     []ResourceProbe{},
-				Pipelines: []ResourceProbe{},
 			},
 		},
 	}

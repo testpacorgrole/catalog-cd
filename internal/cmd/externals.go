@@ -23,7 +23,9 @@ var _ runner.SubCommand = &ExternalsCmd{}
 
 const externalsLongDescription = `# catalog-cd externals
 
-TODO
+Generate a GitHub matrix strategy-compatible json from an externals.yaml file.
+
+  $ catalog-cd catalog externals --config=./externals.yaml
 `
 
 // Cmd exposes the cobra command instance.
@@ -58,10 +60,12 @@ func (v *ExternalsCmd) Validate() error {
 }
 
 type GitHubRunObject struct {
-	Name           string `json:"name"`
-	URL            string `json:"url"`
-	Type           string `json:"type"`
-	IgnoreVersions string `json:"ignoreVersions"`
+	Name                 string `json:"name"`
+	URL                  string `json:"url"`
+	Type                 string `json:"type"`
+	IgnoreVersions       string `json:"ignoreVersions"`
+	CatalogName          string `json:"catalog-name"`
+	ResourcesTarballName string `json:"resources-tarball-name"`
 }
 
 type GitHubMatrixObject struct {
@@ -90,10 +94,12 @@ func (v *ExternalsCmd) Run(cfg *config.Config) error {
 				name = path.Base(repository.URL)
 			}
 			o := GitHubRunObject{
-				Name:           name,
-				URL:            repository.URL,
-				Type:           t,
-				IgnoreVersions: ignoreVersions,
+				Name:                 name,
+				URL:                  repository.URL,
+				Type:                 t,
+				IgnoreVersions:       ignoreVersions,
+				CatalogName:          repository.CatalogName,
+				ResourcesTarballName: repository.ResourcesTarballName,
 			}
 			m.Include = append(m.Include, o)
 		}
@@ -113,7 +119,7 @@ func NewCatalogExternalsCmd() runner.SubCommand {
 			Use:          "externals",
 			Args:         cobra.ExactArgs(0),
 			Long:         externalsLongDescription,
-			Short:        "Verifies the resource file signature",
+			Short:        "Generate a GitHub matrix strategy-compatible json from an externals.yaml file.",
 			SilenceUsage: true,
 		},
 	}
