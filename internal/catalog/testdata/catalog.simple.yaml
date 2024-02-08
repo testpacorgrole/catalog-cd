@@ -1,0 +1,19 @@
+version: v1
+catalog:
+  repository:
+    description: ""
+  attestation:
+    publickey: ""
+  resources:
+    tasks:
+      - name: go-crane-image
+        version: 0.5.0
+        filename: tasks/go-crane-image/go-crane-image.yaml
+        checksum: 9b1f8e2ecbb5795727de93a6b95bbed2a4f44871f0f0ded6a2d8a04b2283a2b9
+        signature: ""
+      - name: go-ko-image
+        version: 0.5.0
+        filename: tasks/go-ko-image/go-ko-image.yaml
+        checksum: e84e01f61a25aee509a4e3513b19f8f33a865eed60fd17647b56df8b716edfde
+        signature: ""
+    pipelines: []

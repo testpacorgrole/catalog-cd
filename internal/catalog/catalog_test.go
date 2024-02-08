@@ -7,6 +7,7 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/openshift-pipelines/catalog-cd/internal/catalog"
+	"github.com/openshift-pipelines/catalog-cd/internal/contract"
 	"github.com/openshift-pipelines/catalog-cd/internal/fetcher/config"
 	"gopkg.in/h2non/gock.v1"
 	"gotest.tools/v3/assert"
@@ -16,7 +17,6 @@ import (
 
 func TestFetchFromExternal(t *testing.T) {
 	t.Cleanup(gock.Off)
-	t.Skip("Skipping, need to be rewritten")
 
 	repo := config.Repository{
 		Name: "golang-task",
@@ -29,9 +29,9 @@ func TestFetchFromExternal(t *testing.T) {
 		Reply(200).
 		File("testdata/releases.yaml")
 	gock.New("https://github.com").
-		Get(fmt.Sprintf("%s/releases/download/v1.0.0/contract.yaml", r)).
+		Get(fmt.Sprintf("%s/releases/download/v1.0.0/catalog.yaml", r)).
 		Reply(200).
-		File("testdata/contract.simple.yaml")
+		File("testdata/catalog.simple.yaml")
 
 	client, err := api.DefaultRESTClient()
 	if err != nil {
@@ -39,96 +39,76 @@ func TestFetchFromExternal(t *testing.T) {
 	}
 	e := config.External{
 		Repositories: []config.Repository{{
-			Name:  "sbr-golang",
-			URL:   "https://github.com/shortbrain/golang-tasks",
-			Types: []string{"tasks"},
+			Name:                 "sbr-golang",
+			URL:                  "https://github.com/shortbrain/golang-tasks",
+			Types:                []string{"tasks"},
+			CatalogName:          "catalog.yaml",
+			ResourcesTarballName: "resources.tar.gz",
 		}},
 	}
 	c, err := catalog.FetchFromExternals(e, client)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Resources) != 2 {
-		t.Fatalf("Should have created a catalog with only 2 resources, got %d: %v", len(c.Resources), c.Resources)
+	if len(c.Repositories) != 1 {
+		t.Fatalf("Should have created a catalog with only 1 repository, got %d: %v", len(c.Repositories), c.Repositories)
 	}
 }
 
 func TestGenerateFilesystem(t *testing.T) {
-	t.Skip("Skipping, need to be rewritten")
 	t.Cleanup(gock.Off)
 
 	gock.New("https://fake.host").
-		Get("git-clone-0.1.0.yaml").
+		Get("resources.tar.gz").
 		Reply(200).
-		File("testdata/git-clone.yaml")
-	gock.New("https://fake.host").
-		Get("git-clone-1.1.0.yaml").
-		Reply(200).
-		File("testdata/git-clone.yaml")
-	gock.New("https://fake.host").
-		Get("golang-build-0.2.0.yaml").
-		Reply(200).
-		File("testdata/golang-build.yaml")
-	gock.New("https://fake.host").
-		Get("my-pipeline-1.0.0.yaml").
-		Reply(200).
-		File("testdata/my-pipeline.yaml")
+		File("testdata/resources.tar.gz")
 
 	dir := fs.NewDir(t, "catalog")
 	defer dir.Remove()
 
 	c := catalog.Catalog{
-		Resources: map[string]catalog.Resource{
-			"git-clone": map[string]string{
-				// Versions: map[string]catalog.VersionnedTask{
-				// 	"0.1.0": {
-				// 		DownloadURL: "https://fake.host/git-clone-0.1.0.yaml",
-				// 		Bundle:      "fake.host/gitclone:0.1.0",
-				// 	},
-				// 	"1.1.0": {
-				// 		DownloadURL: "https://fake.host/git-clone-1.1.0.yaml",
-				// 		Bundle:      "fake.host/gitclone:1.1.0",
-				// 	},
-				// },
-			},
-			"golang-build": map[string]string{
-				// Versions: map[string]catalog.VersionnedTask{
-				// 	"0.2.0": {
-				// 		DownloadURL: "https://fake.host/golang-build-0.2.0.yaml",
-				// 	},
-				// },
+		Repositories: map[string]catalog.Repository{
+			"sbr-golang": map[string]catalog.Release{
+				"0.5.0": {
+					ResourcesURI: "https://fake.host/resources.tar.gz",
+					Catalog: contract.Catalog{
+						Resources: &contract.Resources{
+							Tasks: []*contract.TektonResource{{
+								Name:     "go-crane-image",
+								Version:  "0.5.0",
+								Filename: "tasks/go-crane-image/go-crane-image.yaml",
+								Checksum: "9b1f8e2ecbb5795727de93a6b95bbed2a4f44871f0f0ded6a2d8a04b2283a2b9",
+							}, {
+								Name:     "go-ko-image",
+								Version:  "0.5.0",
+								Filename: "tasks/go-ko-image/go-ko-image.yaml",
+								Checksum: "e84e01f61a25aee509a4e3513b19f8f33a865eed60fd17647b56df8b716edfde",
+							}},
+							Pipelines: []*contract.TektonResource{},
+						},
+					},
+				},
 			},
 		},
-		// Pipelines: map[string]catalog.Pipeline{
-		// 	"my-pipeline": {
-		// 		Versions: map[string]catalog.VersionnedPipeline{
-		// 			"1.0.0": {
-		// 				DownloadURL: "https://fake.host/my-pipeline-1.0.0.yaml",
-		// 			},
-		// 		},
-		// 	},
-		// },
 	}
 	err := catalog.GenerateFilesystem(dir.Path(), c, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := fs.Expected(t,
-		fs.WithDir("tasks",
-			fs.WithDir("git-clone",
-				fs.WithDir("0.1.0", fs.WithFile("git-clone.yaml", "", fs.WithBytes(golden.Get(t, "git-clone.yaml")))),
-				fs.WithDir("1.1.0", fs.WithFile("git-clone.yaml", "", fs.WithBytes(golden.Get(t, "git-clone.yaml")))),
-			),
-			fs.WithDir("golang-build",
-				fs.WithDir("0.2.0", fs.WithFile("golang-build.yaml", "", fs.WithBytes(golden.Get(t, "golang-build.yaml")))),
+	expected := fs.Expected(t, fs.WithDir("tasks",
+		fs.WithDir("go-crane-image",
+			fs.WithDir("0.5.0",
+				fs.WithFile("go-crane-image.yaml", "", fs.WithBytes(golden.Get(t, "tasks/go-crane-image/go-crane-image.yaml"))),
+				fs.WithFile("README.md", "", fs.WithBytes(golden.Get(t, "tasks/go-crane-image/README.md"))),
 			),
 		),
-		fs.WithDir("pipelines",
-			fs.WithDir("my-pipeline",
-				fs.WithDir("1.0.0", fs.WithFile("my-pipeline.yaml", "", fs.WithBytes(golden.Get(t, "my-pipeline.yaml")))),
+		fs.WithDir("go-ko-image",
+			fs.WithDir("0.5.0",
+				fs.WithFile("go-ko-image.yaml", "", fs.WithBytes(golden.Get(t, "tasks/go-ko-image/go-ko-image.yaml"))),
+				fs.WithFile("README.md", "", fs.WithBytes(golden.Get(t, "tasks/go-ko-image/README.md"))),
 			),
 		),
-	)
+	))
 
 	assert.Assert(t, fs.Equal(dir.Path(), expected))
 }
