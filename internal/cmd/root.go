@@ -22,8 +22,6 @@ func NewRootCmd(stream *tkncli.Stream) *cobra.Command {
 
 	cfg := config.NewConfigWithFlags(stream, rootCmd.PersistentFlags())
 
-	rootCmd.AddCommand(runner.NewRunner(cfg, NewLintCmd()).Cmd())
-	rootCmd.AddCommand(runner.NewRunner(cfg, NewProbeCmd()).Cmd())
 	rootCmd.AddCommand(runner.NewRunner(cfg, NewRenderCmd()).Cmd())
 	rootCmd.AddCommand(runner.NewRunner(cfg, NewVerifyCmd()).Cmd())
 	rootCmd.AddCommand(runner.NewRunner(cfg, NewReleaseCmd()).Cmd())

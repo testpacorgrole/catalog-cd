@@ -44,30 +44,41 @@ const (
 	DefaultCloudEventSinkValue = ""
 	// DefaultMaxMatrixCombinationsCount is used when no max matrix combinations count is specified.
 	DefaultMaxMatrixCombinationsCount = 256
+	// DefaultResolverTypeValue is used when no default resolver type is specified
+	DefaultResolverTypeValue = ""
+	// default resource requirements, will be applied to all the containers, which has empty resource requirements
+	ResourceRequirementDefaultContainerKey = "default"
 
-	defaultTimeoutMinutesKey             = "default-timeout-minutes"
-	defaultServiceAccountKey             = "default-service-account"
-	defaultManagedByLabelValueKey        = "default-managed-by-label-value"
-	defaultPodTemplateKey                = "default-pod-template"
-	defaultAAPodTemplateKey              = "default-affinity-assistant-pod-template"
-	defaultCloudEventsSinkKey            = "default-cloud-events-sink"
-	defaultTaskRunWorkspaceBinding       = "default-task-run-workspace-binding"
-	defaultMaxMatrixCombinationsCountKey = "default-max-matrix-combinations-count"
-	defaultForbiddenEnv                  = "default-forbidden-env"
+	defaultTimeoutMinutesKey                = "default-timeout-minutes"
+	defaultServiceAccountKey                = "default-service-account"
+	defaultManagedByLabelValueKey           = "default-managed-by-label-value"
+	defaultPodTemplateKey                   = "default-pod-template"
+	defaultAAPodTemplateKey                 = "default-affinity-assistant-pod-template"
+	defaultCloudEventsSinkKey               = "default-cloud-events-sink"
+	defaultTaskRunWorkspaceBinding          = "default-task-run-workspace-binding"
+	defaultMaxMatrixCombinationsCountKey    = "default-max-matrix-combinations-count"
+	defaultForbiddenEnv                     = "default-forbidden-env"
+	defaultResolverTypeKey                  = "default-resolver-type"
+	defaultContainerResourceRequirementsKey = "default-container-resource-requirements"
 )
+
+// DefaultConfig holds all the default configurations for the config.
+var DefaultConfig, _ = NewDefaultsFromMap(map[string]string{})
 
 // Defaults holds the default configurations
 // +k8s:deepcopy-gen=true
 type Defaults struct {
-	DefaultTimeoutMinutes             int
-	DefaultServiceAccount             string
-	DefaultManagedByLabelValue        string
-	DefaultPodTemplate                *pod.Template
-	DefaultAAPodTemplate              *pod.AffinityAssistantTemplate
-	DefaultCloudEventsSink            string
-	DefaultTaskRunWorkspaceBinding    string
-	DefaultMaxMatrixCombinationsCount int
-	DefaultForbiddenEnv               []string
+	DefaultTimeoutMinutes                int
+	DefaultServiceAccount                string
+	DefaultManagedByLabelValue           string
+	DefaultPodTemplate                   *pod.Template
+	DefaultAAPodTemplate                 *pod.AffinityAssistantTemplate
+	DefaultCloudEventsSink               string // Deprecated. Use the events package instead
+	DefaultTaskRunWorkspaceBinding       string
+	DefaultMaxMatrixCombinationsCount    int
+	DefaultForbiddenEnv                  []string
+	DefaultResolverType                  string
+	DefaultContainerResourceRequirements map[string]corev1.ResourceRequirements
 }
 
 // GetDefaultsConfigName returns the name of the configmap containing all
@@ -97,6 +108,7 @@ func (cfg *Defaults) Equals(other *Defaults) bool {
 		other.DefaultCloudEventsSink == cfg.DefaultCloudEventsSink &&
 		other.DefaultTaskRunWorkspaceBinding == cfg.DefaultTaskRunWorkspaceBinding &&
 		other.DefaultMaxMatrixCombinationsCount == cfg.DefaultMaxMatrixCombinationsCount &&
+		other.DefaultResolverType == cfg.DefaultResolverType &&
 		reflect.DeepEqual(other.DefaultForbiddenEnv, cfg.DefaultForbiddenEnv)
 }
 
@@ -108,6 +120,7 @@ func NewDefaultsFromMap(cfgMap map[string]string) (*Defaults, error) {
 		DefaultManagedByLabelValue:        DefaultManagedByLabelValue,
 		DefaultCloudEventsSink:            DefaultCloudEventSinkValue,
 		DefaultMaxMatrixCombinationsCount: DefaultMaxMatrixCombinationsCount,
+		DefaultResolverType:               DefaultResolverTypeValue,
 	}
 
 	if defaultTimeoutMin, ok := cfgMap[defaultTimeoutMinutesKey]; ok {
@@ -164,6 +177,18 @@ func NewDefaultsFromMap(cfgMap map[string]string) (*Defaults, error) {
 			tmpString.Insert(strings.TrimSpace(fEnv))
 		}
 		tc.DefaultForbiddenEnv = tmpString.List()
+	}
+
+	if defaultResolverType, ok := cfgMap[defaultResolverTypeKey]; ok {
+		tc.DefaultResolverType = defaultResolverType
+	}
+
+	if resourceRequirementsStringValue, ok := cfgMap[defaultContainerResourceRequirementsKey]; ok {
+		resourceRequirementsValue := make(map[string]corev1.ResourceRequirements)
+		if err := yamlUnmarshal(resourceRequirementsStringValue, defaultContainerResourceRequirementsKey, &resourceRequirementsValue); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal %v", resourceRequirementsStringValue)
+		}
+		tc.DefaultContainerResourceRequirements = resourceRequirementsValue
 	}
 
 	return &tc, nil

@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"math"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -173,7 +172,7 @@ func FormatWithConfig(in []byte, c Config) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return out(nodes), nil
+	return PrettyBytes(nodes, 0), nil
 }
 
 // Return the byte-positions of each bracket which has the corresponding close on the
@@ -1340,9 +1339,10 @@ func Pretty(nodes []*ast.Node, depth int) string {
 	return result.String()
 }
 
-func out(nodes []*ast.Node) []byte {
+// PrettyBytes returns formatted nodes at the given indentation depth (0 = top-level) as bytes.
+func PrettyBytes(nodes []*ast.Node, depth int) []byte {
 	var result bytes.Buffer
-	formatter{&result}.writeNodes(removeDeleted(nodes), 0, false /* isSameLine */, false /* asListItems */)
+	formatter{&result}.writeNodes(removeDeleted(nodes), depth, false /* isSameLine */, false /* asListItems */)
 	return result.Bytes()
 }
 
@@ -1395,7 +1395,7 @@ func nodeSortFunction(c Config) NodeSortFunction {
 	}
 	if sorter != nil {
 		return func(parent *ast.Node, ns []*ast.Node) error {
-			sort.Stable(ast.SortableNodesWithParent(parent, ns, sorter))
+			ast.SortNodes(parent, ns, sorter)
 			if c.RequireFieldSortOrderToMatchAllFieldsInNode {
 				return unsortedFieldCollector.asError()
 			}
@@ -1422,6 +1422,27 @@ func nodeFilterFunction(c Config) NodeFilterFunction {
 	return nil
 }
 
+func getNodePriorityForByFieldOrder(parent, node *ast.Node, name string, priorities map[string]int, unsortedCollector UnsortedFieldCollectorFunc) *int {
+	if parent != nil && parent.Name != name {
+		return nil
+	}
+	if parent == nil && name != RootName {
+		return nil
+	}
+	// CommentOnly nodes don't set priority below, and default to MaxInt, which keeps them at the bottom
+	prio := math.MaxInt
+
+	// Unknown fields will get the int nil value of 0 from the order map, and bubble to the top.
+	if !node.IsCommentOnly() {
+		var ok bool
+		prio, ok = priorities[node.Name]
+		if !ok {
+			unsortedCollector(node.Name, node.Start.Line, parent.Name)
+		}
+	}
+	return &prio
+}
+
 // ByFieldOrder returns a NodeLess function that orders fields within a node named name
 // by the order specified in fieldOrder. Nodes sorted but not specified by the field order
 // are bubbled to the top and reported to unsortedCollector.
@@ -1430,28 +1451,19 @@ func ByFieldOrder(name string, fieldOrder []string, unsortedCollector UnsortedFi
 	for i, fieldName := range fieldOrder {
 		priorities[fieldName] = i + 1
 	}
-	return func(parent, ni, nj *ast.Node) bool {
-		if parent != nil && parent.Name != name {
+	return func(parent, ni, nj *ast.Node, isWholeSlice bool) bool {
+		if !isWholeSlice {
 			return false
 		}
-		if parent == nil && name != RootName {
+		vi := getNodePriorityForByFieldOrder(parent, ni, name, priorities, unsortedCollector)
+		vj := getNodePriorityForByFieldOrder(parent, nj, name, priorities, unsortedCollector)
+		if vi == nil {
+			return vj != nil
+		}
+		if vj == nil {
 			return false
 		}
-		getNodePriority := func(node *ast.Node) int {
-			// CommentOnly nodes don't set priority below, and default to MaxInt, which keeps them at the bottom
-			prio := math.MaxInt
-
-			// Unknown fields will get the int nil value of 0 from the order map, and bubble to the top.
-			if !node.IsCommentOnly() {
-				var ok bool
-				prio, ok = priorities[node.Name]
-				if !ok {
-					unsortedCollector(node.Name, node.Start.Line, parent.Name)
-				}
-			}
-			return prio
-		}
-		return getNodePriority(ni) < getNodePriority(nj)
+		return *vi < *vj
 	}
 }
 
