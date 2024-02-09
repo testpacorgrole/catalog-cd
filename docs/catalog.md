@@ -5,6 +5,7 @@
 Describes what the file `catalog.yaml` contains and the use-cases indented for this **contract**. The file will be placed the release page of a repository containing Tekton Pipeline resources (Tasks and Pipelines).
 
 The `catalog.yaml` goal is to serve as a blueprint to find the resources managed on the respective repository, as well to provide information for software supply chain attestation, and describe continuous integration test-cases. Usually, the `catalog.yaml` is created during a release on these repositories (using `catalog-cd release` or manually).
+
 # Use-Cases
 
 The file described on this document is meant to make possible the use-cases described below.

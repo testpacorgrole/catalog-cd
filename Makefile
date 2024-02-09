@@ -10,7 +10,7 @@ GOFLAGS_TEST ?= -v -cover
 
 SH_FILES := $(shell find ./ -not -regex '^./vendor/.*' -type f -regex ".*\.sh" -print)
 YAML_FILES := $(shell find . -not -regex '^./vendor/.*' -type f -regex ".*y[a]ml" -print)
-MD_FILES := $(shell find . -type f -regex ".*md"  -not -regex '^./vendor/.*'  -not -regex '^./.vale/.*'  -not -regex "^./docs/themes/.*" -not -regex "^./.git/.*" -print)
+MD_FILES := $(shell find . -type f -regex ".*md"  -not -regex '^./vendor/.*'  -not -regex '^./.vale/.*'  -not -regex "^./docs/themes/.*" -not -regex "^./.git/.*" -not -regex ".*/testdata/.*" -print)
 
 ARGS ?=
 
