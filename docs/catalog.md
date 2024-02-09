@@ -1,22 +1,17 @@
-`catalog.yaml`
+# `catalog.yaml`
 
 # Abstract
 
-Describes what the file `catalog.yaml` contains and the use-cases indented for this **contract**. The file will be placed on the root of a CVS repository containing Tekton Pipeline resources (Tasks and Pipelines).
+Describes what the file `catalog.yaml` contains and the use-cases indented for this **contract**. The file will be placed the release page of a repository containing Tekton Pipeline resources (Tasks and Pipelines).
 
-The `catalog.yaml` goal is to serve as a blueprint to find the resources managed on the respective repository, as well to provide information for software supply chain attestation, and describe continuous integration test-cases.
-
-During the release of these repositories the `catalog.yaml` is added to the payload in order to describe the Tekton resource artifacts.
-
+The `catalog.yaml` goal is to serve as a blueprint to find the resources managed on the respective repository, as well to provide information for software supply chain attestation, and describe continuous integration test-cases. Usually, the `catalog.yaml` is created during a release on these repositories (using `catalog-cd release` or manually).
 # Use-Cases
 
 The file described on this document is meant to make possible the use-cases described below.
 
 ## Repository Root
 
-The primary location for the `catalog.yaml` file is on the root of the (Git?) repository, describing all the elements, providing software supply chain attestation data and as well descring test cases.
-
-For repositories containing the direct YAML payload of Tekton resource files stored, the file will also contain `.catalog.resources` entries, reflecting the location of the data.
+The primary location for the `catalog.yaml` file is on a release page of the repository, describing all the elements, providing software supply chain attestation data and as well descring test cases, *for that release*.
 
 ### Release Artifacts
 
@@ -46,9 +41,7 @@ catalog:
       - name: task-git
         version: "0.0.1"
         filename: path/to/resource.yaml
-        sha256sum: resource-sha256-checksum
-        tri: git://openshift-pipelines/task-git@0.0.1
-        bundle: ghcr.io/openshift-pipelines/task-git:0.0.1-bundle
+        checksum: resource-sha256-checksum
         signature: path/to/signature.sig
     pipelines: []
 ```
@@ -61,7 +54,7 @@ Attributes under `.catalog.repository` are meant to describe the repository cont
 
 ## Supply Chain Attestation (`.catalog.attestation`)
 
-For the software supply chain security, the `.catalog.attestation` hols the elements needed to verify the authors signature. Initially it will contain the public key, either as a direct string or a file, and annotations for the verification processes.
+For the software supply chain security, the `.catalog.attestation` holds the elements needed to verify the authors signature. Initially it will contain the public key, either as a direct string or a file, and annotations for the verification processes.
 
 ## Tekton Pipeline Resources (`.catalog.resources`)
 
@@ -72,5 +65,5 @@ Each entry contains the following:
 - `.name`: resource name, the Task's name or Pipeline's name
 - `.version` (optional): the resource version, by default the repository's revision takes place
 - `.filename`: relative path to the YAML resource file
-- `.bundle` (optional): shows the respective OCI bundle image name, where the current resource is stored
+- `.checksum`: sha256 sum, in order to validate the resource payload after network transfer.
 - `.signature` (optional): relative path to the signature file, when empty it should search for the respective filename followed by the ".sig" extension, or the signature payload itself directly
