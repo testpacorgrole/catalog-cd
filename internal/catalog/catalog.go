@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,12 +19,12 @@ import (
 	"github.com/openshift-pipelines/catalog-cd/internal/fetcher/config"
 )
 
-// Catalog represent the list of repositories from which we fetch informations
+// Catalog represent the list of repositories from which we fetch informations.
 type Catalog struct {
 	Repositories map[string]Repository
 }
 
-// Repository holds a map of version + "fetch information" useful to generate a catalog
+// Repository holds a map of version + "fetch information" useful to generate a catalog.
 type Repository map[string]Release
 
 // Release holds information per release per repository
@@ -94,7 +95,7 @@ func fetchAndExtract(path string, release Release, version, resourceType string)
 	return untar(path, version, tektonResources, resp.Body)
 }
 
-// untar, filter and validate content
+// untar, filter and validate content.
 func untar(dst, version string, tektonResources map[string]contract.TektonResource, r io.Reader) error {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
@@ -108,7 +109,7 @@ func untar(dst, version string, tektonResources map[string]contract.TektonResour
 		header, err := tr.Next()
 		switch {
 		// if no more files are found return
-		case err == io.EOF:
+		case errors.Is(err, io.EOF):
 			return nil
 		// return any other error
 		case err != nil:
@@ -170,9 +171,8 @@ func untar(dst, version string, tektonResources map[string]contract.TektonResour
 					fmt.Fprintf(os.Stderr, "%s checksum is different than the specified checksum in the catalog file: %s", sum, tektonResource.Checksum)
 					// FIXME: maybe handle *all* file before erroring out ?
 					return fmt.Errorf("invalid checksum for %s: %s != %s", filename, sum, tektonResource.Checksum)
-				} else {
-					fmt.Fprintf(os.Stderr, "✅ %s\n", tektonResource.Filename)
 				}
+				fmt.Fprintf(os.Stderr, "✅ %s\n", tektonResource.Filename)
 			}
 		}
 	}

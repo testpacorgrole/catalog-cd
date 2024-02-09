@@ -131,10 +131,7 @@ func (r *ReleaseCmd) Run(_ *config.Config) error {
 	// Create a tarball (without catalog.yaml
 	tarball := filepath.Join(r.output, r.resourcesName)
 	fmt.Fprintf(os.Stderr, "# Creating tarball at %q\n", tarball)
-	if err := createTektonResourceArchive(tarball, r.catalogName, r.resourcesName, r.output); err != nil {
-		return err
-	}
-	return nil
+	return createTektonResourceArchive(tarball, r.catalogName, r.resourcesName, r.output)
 }
 
 func createTektonResourceArchive(archiveFile, catalogFileName, resourcesFileName, output string) error {
