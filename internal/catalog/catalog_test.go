@@ -33,7 +33,9 @@ func TestFetchFromExternal(t *testing.T) {
 		Reply(200).
 		File("testdata/catalog.simple.yaml")
 
-	client, err := api.DefaultRESTClient()
+	client, err := api.NewRESTClient(api.ClientOptions{
+		AuthToken: "fooisbar",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
