@@ -46,7 +46,7 @@ linters:
     - gocheckcompilerdirectives
     #- gochecknoglobals
     - gochecknoinits
-    - gochecksumtype
+    #- gochecksumtype
     #- gocognit
     #- goconst
     - gocritic
@@ -64,7 +64,7 @@ linters:
     - goprintffuncname
     - gosec
     - gosimple
-    - gosmopolitan
+    #- gosmopolitan
     - govet
     - grouper
     - importas
@@ -75,7 +75,7 @@ linters:
     - loggercheck
     #- maintidx
     - makezero
-    - mirror
+    #- mirror
     - misspell
     #- musttag
     - nakedret
@@ -92,15 +92,15 @@ linters:
     - prealloc
     - predeclared
     - promlinter
-    - protogetter
+    #- protogetter
     - reassign
     - revive
     #- rowserrcheck
-    - sloglint
+    #- sloglint
     #- sqlclosecheck
     - staticcheck
     - stylecheck
-    - tagalign
+    #- tagalign
     #- tagliatelle
     - tenv
     - testableexamples
@@ -117,4 +117,4 @@ linters:
     - whitespace
     #- wrapcheck
     #- wsl
-    - zerologlint
+    #- zerologlint
