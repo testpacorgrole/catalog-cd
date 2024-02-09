@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
-	"github.com/openshift-pipelines/catalog-cd/internal/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -19,9 +18,9 @@ func CatalogCmd(cfg *config.Config) *cobra.Command {
 		Long:  catalogLongDescription,
 	}
 
-	catalogCmd.AddCommand(runner.NewRunner(cfg, NewCatalogGenerateCmd()).Cmd())
-	catalogCmd.AddCommand(runner.NewRunner(cfg, NewCatalogGenerateFromExternalCmd()).Cmd())
-	catalogCmd.AddCommand(runner.NewRunner(cfg, NewCatalogExternalsCmd()).Cmd())
+	catalogCmd.AddCommand(NewCatalogGenerateCmd(cfg))
+	catalogCmd.AddCommand(NewCatalogGenerateFromExternalCmd(cfg))
+	catalogCmd.AddCommand(NewCatalogExternalsCmd(cfg))
 
 	return catalogCmd
 }

@@ -1,25 +1,21 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"os"
 
 	"github.com/openshift-pipelines/catalog-cd/internal/attestation"
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
 	"github.com/openshift-pipelines/catalog-cd/internal/contract"
-	"github.com/openshift-pipelines/catalog-cd/internal/runner"
 	"github.com/spf13/cobra"
 )
 
-// SignCmd subcommand "sign" to handles signing contract resources.
-type SignCmd struct {
-	cmd *cobra.Command     // cobra command definition
-	c   *contract.Contract // catalog contract instance
+// signOptions subcommand "sign" to handles signing contract resources.
+type signOptions struct {
+	c *contract.Contract // catalog contract instance
 
 	privateKey string // private key location
 }
-
-var _ runner.SubCommand = &SignCmd{}
 
 const signLongDescription = `# catalog-cd sign
 
@@ -30,56 +26,44 @@ To sign the resources the subcommand requires a private-key ("--private-key" fla
 ask for the password when trying to interact with a encripted key.
 `
 
-// Cmd exposes the cobra command instance.
-func (s *SignCmd) Cmd() *cobra.Command {
-	return s.cmd
-}
-
-// Complete loads the contract file from the location informed on the first argument.
-func (s *SignCmd) Complete(_ *config.Config, args []string) error {
+func runSign(_ context.Context, cfg *config.Config, args []string, o signOptions) error {
 	var err error
-	s.c, err = LoadContractFromArgs(args)
-	return err
-}
-
-// Validate implements runner.SubCommand.
-func (*SignCmd) Validate() error {
-	return nil
-}
-
-// Run perform the resource signing.
-func (s *SignCmd) Run(_ *config.Config) error {
-	helper, err := attestation.NewAttestation(s.privateKey)
+	o.c, err = LoadContractFromArgs(args)
 	if err != nil {
 		return err
 	}
-	if err = s.c.SignResources(func(payladPath, outputSignature string) error {
-		fmt.Fprintf(os.Stderr, "# Signing resource %q on %q...\n", payladPath, outputSignature)
+	helper, err := attestation.NewAttestation(o.privateKey)
+	if err != nil {
+		return err
+	}
+	if err = o.c.SignResources(func(payladPath, outputSignature string) error {
+		fmt.Fprintf(cfg.Stream.Err, "# Signing resource %q on %q...\n", payladPath, outputSignature)
 		return helper.Sign(payladPath, outputSignature)
 	}); err != nil {
 		return err
 	}
-	return s.c.Save()
+	return o.c.Save()
 }
 
 // NewSignCmd instantiate the SignCmd and flags.
-func NewSignCmd() runner.SubCommand {
-	s := &SignCmd{
-		cmd: &cobra.Command{
-			Use:          "sign [flags]",
-			Short:        "Signs Tekton Pipelines resources",
-			Long:         signLongDescription,
-			Args:         cobra.MaximumNArgs(1),
-			SilenceUsage: true,
+func NewSignCmd(cfg *config.Config) *cobra.Command {
+	o := signOptions{}
+	cmd := &cobra.Command{
+		Use:          "sign [flags]",
+		Short:        "Signs Tekton Pipelines resources",
+		Long:         signLongDescription,
+		Args:         cobra.MaximumNArgs(1),
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runSign(cmd.Context(), cfg, args, o)
 		},
 	}
 
-	f := s.cmd.PersistentFlags()
-	f.StringVar(&s.privateKey, "private-key", "", "private key file location")
+	cmd.PersistentFlags().StringVar(&o.privateKey, "private-key", "", "private key file location")
 
-	if err := s.cmd.MarkPersistentFlagRequired("private-key"); err != nil {
+	if err := cmd.MarkPersistentFlagRequired("private-key"); err != nil {
 		panic(err)
 	}
 
-	return s
+	return cmd
 }

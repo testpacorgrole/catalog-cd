@@ -8,19 +8,14 @@ import (
 	"github.com/openshift-pipelines/catalog-cd/internal/attestation"
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
 	"github.com/openshift-pipelines/catalog-cd/internal/contract"
-	"github.com/openshift-pipelines/catalog-cd/internal/runner"
 	"github.com/spf13/cobra"
 )
 
-// VerifyCmd represents the "verify" subcommand to verify the signature of a resource file.
-type VerifyCmd struct {
-	cmd *cobra.Command // cobra command definition
-	c   *contract.Contract
-
+// verifyOptions represents the "verify" options to verify the signature of a resource file.
+type verifyOptions struct {
+	c         *contract.Contract
 	publicKey string // path to the public key file
 }
-
-var _ runner.SubCommand = &VerifyCmd{}
 
 const verifyLongDescription = `# catalog-cd verify
 
@@ -32,56 +27,44 @@ In order to verify the signature the public-key is required, it's specified eith
 catalog contract, or using the flag "--public-key".
 `
 
-// Cmd exposes the cobra command instance.
-func (v *VerifyCmd) Cmd() *cobra.Command {
-	return v.cmd
-}
-
-// Complete asserts the required flags are informed, and the last argument is the resource
-// file for signature verification.
-func (v *VerifyCmd) Complete(_ *config.Config, args []string) error {
+func runVerify(ctx context.Context, cfg *config.Config, args []string, o verifyOptions) error {
 	var err error
-	v.c, err = LoadContractFromArgs(args)
-	return err
-}
-
-// Validate asserts all the required files exists.
-func (v *VerifyCmd) Validate() error {
-	var err error
-	if v.publicKey == "" {
-		v.publicKey, err = v.c.GetPublicKey()
-	}
-	return err
-}
-
-// Run wrapper around "cosign verify-blob" command.
-func (v *VerifyCmd) Run(cfg *config.Config) error {
-	cfg.Infof("# Public-Key: %q\n", v.publicKey)
-
-	helper, err := attestation.NewAttestation(v.publicKey)
+	o.c, err = LoadContractFromArgs(args)
 	if err != nil {
 		return err
 	}
-	return v.c.VerifyResources(v.cmd.Context(), func(ctx context.Context, blobRef, sigRef string) error {
+	if o.publicKey == "" {
+		o.publicKey, err = o.c.GetPublicKey()
+		if err != nil {
+			return err
+		}
+	}
+	cfg.Infof("# Public-Key: %q\n", o.publicKey)
+
+	helper, err := attestation.NewAttestation(o.publicKey)
+	if err != nil {
+		return err
+	}
+	return o.c.VerifyResources(ctx, func(ctx context.Context, blobRef, sigRef string) error {
 		fmt.Fprintf(os.Stderr, "# Verifying resource %q against signature %q...\n", blobRef, sigRef)
 		return helper.Verify(ctx, blobRef, sigRef)
 	})
 }
 
 // NewVerifyCmd instantiates the "verify" subcommand.
-func NewVerifyCmd() runner.SubCommand {
-	v := &VerifyCmd{
-		cmd: &cobra.Command{
-			Use:          "verify",
-			Args:         cobra.ExactArgs(1),
-			Long:         verifyLongDescription,
-			Short:        "Verifies the resource file signature",
-			SilenceUsage: true,
+func NewVerifyCmd(cfg *config.Config) *cobra.Command {
+	o := verifyOptions{}
+
+	cmd := &cobra.Command{
+		Use:          "verify",
+		Args:         cobra.ExactArgs(1),
+		Long:         verifyLongDescription,
+		Short:        "Verifies the resource file signature",
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runVerify(cmd.Context(), cfg, args, o)
 		},
 	}
-
-	f := v.cmd.PersistentFlags()
-	f.StringVar(&v.publicKey, "public-key", "", "path to the public key file")
-
-	return v
+	cmd.PersistentFlags().StringVar(&o.publicKey, "public-key", "", "path to the public key file")
+	return cmd
 }

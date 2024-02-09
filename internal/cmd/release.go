@@ -3,6 +3,7 @@ package cmd
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -13,22 +14,17 @@ import (
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
 	"github.com/openshift-pipelines/catalog-cd/internal/contract"
 	"github.com/openshift-pipelines/catalog-cd/internal/resource"
-	"github.com/openshift-pipelines/catalog-cd/internal/runner"
-
 	"github.com/spf13/cobra"
 )
 
-// ReleaseCmd creates a contract (".catalog.yaml") based on Tekton resources files.
-type ReleaseCmd struct {
-	cmd           *cobra.Command // cobra command definition
-	version       string         // release version
-	paths         []string       // tekton resource paths
-	output        string         // output path, where the contract and tarball will be written
-	catalogName   string         // name for the catalog.yaml
-	resourcesName string         // name for the resources tarball containing names
+// releaseOptions creates a contract (".catalog.yaml") based on Tekton resources files.
+type releaseOptions struct {
+	version       string   // release version
+	paths         []string // tekton resource paths
+	output        string   // output path, where the contract and tarball will be written
+	catalogName   string   // name for the catalog.yaml
+	resourcesName string   // name for the resources tarball containing names
 }
-
-var _ runner.SubCommand = &ReleaseCmd{}
 
 const releaseLongDescription = `# catalog-cd release
 
@@ -52,60 +48,42 @@ It always require the "--version" flag specifying the common revision for all
 resources in scope.
 `
 
-// Cmd exposes the cobra command instance.
-func (r *ReleaseCmd) Cmd() *cobra.Command {
-	return r.cmd
-}
-
-// Complete creates the "release" scope by finding all Tekton resource files using the cli
-// args glob pattern(s).
-func (r *ReleaseCmd) Complete(_ *config.Config, args []string) error {
+func runRelease(_ context.Context, cfg *config.Config, args []string, o releaseOptions) error {
 	// making sure the output flag is informed before attempt to search files
-	if r.output == "" {
+	if o.output == "" {
 		return fmt.Errorf("--output flag is not informed")
 	}
-	r.paths = args
-	return nil
-}
-
-// Validate assert the release scope is not empty.
-func (r *ReleaseCmd) Validate() error {
-	if len(r.paths) == 0 {
+	o.paths = args
+	if len(o.paths) == 0 {
 		return fmt.Errorf("no tekton resource paths have been found")
 	}
-	fmt.Fprintf(os.Stderr, "# Found %d path to inspect!\n", len(r.paths))
-	return nil
-}
-
-// Run creates a ".catalog.yaml" (contract file) with the release scope, saves the contract
-// on the location informed by the "--output" flag.
-func (r *ReleaseCmd) Run(_ *config.Config) error {
+	fmt.Fprintf(cfg.Stream.Err, "# Found %d path to inspect!\n", len(o.paths))
 	c := contract.NewContractEmpty()
 	// going through the pattern slice collected before to select the tekton resource files
 	// to be part of the current release, in other words, release scope
-	fmt.Fprintf(os.Stderr, "# Scan Tekton resources on: %s\n", strings.Join(r.paths, ", "))
-	for _, p := range r.paths {
+	fmt.Fprintf(cfg.Stream.Err, "# Scan Tekton resources on: %s\n", strings.Join(o.paths, ", "))
+	for _, p := range o.paths {
 		files, err := resource.Scanner(p)
 		if err != nil {
 			return err
 		}
 
 		for _, f := range files {
-			fmt.Fprintf(os.Stderr, "# Loading resource file: %q\n", f)
+			fmt.Fprintf(cfg.Stream.Err, "# Loading resource file: %q\n", f)
 			taskname := filepath.Base(filepath.Dir(f))
 			resourceType, err := resource.GetResourceType(f)
 			if err != nil {
 				return err
 			}
-			resourceFolder := filepath.Join(r.output, strings.ToLower(resourceType)+"s", taskname)
+			resourceFolder := filepath.Join(o.output, strings.ToLower(resourceType)+"s", taskname)
 			if err := os.MkdirAll(resourceFolder, os.ModePerm); err != nil {
 				return err
 			}
-			if err := c.AddResourceFile(f, r.version); err != nil {
+			if err := c.AddResourceFile(f, o.version); err != nil {
 				if errors.Is(err, contract.ErrTektonResourceUnsupported) {
 					return err
 				}
-				fmt.Fprintf(os.Stderr, "# WARNING: Skipping file %q!\n", f)
+				fmt.Fprintf(cfg.Stream.Err, "# WARNING: Skipping file %q!\n", f)
 			}
 			// Copy it to output
 			if err := copyFile(f, filepath.Join(resourceFolder, filepath.Base(f))); err != nil {
@@ -122,16 +100,42 @@ func (r *ReleaseCmd) Run(_ *config.Config) error {
 		}
 	}
 
-	catalogPath := filepath.Join(r.output, r.catalogName)
-	fmt.Fprintf(os.Stderr, "# Saving release contract at %q\n", catalogPath)
+	catalogPath := filepath.Join(o.output, o.catalogName)
+	fmt.Fprintf(cfg.Stream.Err, "# Saving release contract at %q\n", catalogPath)
 	if err := c.SaveAs(catalogPath); err != nil {
 		return err
 	}
 
 	// Create a tarball (without catalog.yaml
-	tarball := filepath.Join(r.output, r.resourcesName)
-	fmt.Fprintf(os.Stderr, "# Creating tarball at %q\n", tarball)
-	return createTektonResourceArchive(tarball, r.catalogName, r.resourcesName, r.output)
+	tarball := filepath.Join(o.output, o.resourcesName)
+	fmt.Fprintf(cfg.Stream.Err, "# Creating tarball at %q\n", tarball)
+	return createTektonResourceArchive(tarball, o.catalogName, o.resourcesName, o.output)
+}
+
+// NewReleaseCmd instantiates the NewReleaseCmd subcommand and flags.
+func NewReleaseCmd(cfg *config.Config) *cobra.Command {
+	o := releaseOptions{}
+	cmd := &cobra.Command{
+		Use:          "release [flags] [glob|directory]",
+		Short:        "Creates a contract for Tekton resource files",
+		Long:         releaseLongDescription,
+		Args:         cobra.ArbitraryArgs,
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runRelease(cmd.Context(), cfg, args, o)
+		},
+	}
+
+	cmd.PersistentFlags().StringVar(&o.version, "version", "", "release version")
+	cmd.PersistentFlags().StringVar(&o.output, "output", ".", "path to the release files (to attach to a given release)")
+	cmd.PersistentFlags().StringVar(&o.catalogName, "catalog-name", contract.Filename, "name for the catalog.yaml file")
+	cmd.PersistentFlags().StringVar(&o.resourcesName, "resources-tarball-name", contract.ResourcesName, "name for the catalog.yaml file")
+
+	if err := cmd.MarkPersistentFlagRequired("version"); err != nil {
+		panic(err)
+	}
+
+	return cmd
 }
 
 func createTektonResourceArchive(archiveFile, catalogFileName, resourcesFileName, output string) error {
@@ -211,32 +215,6 @@ func addToArchive(tw *tar.Writer, filename, output string) error {
 	}
 
 	return nil
-}
-
-// NewReleaseCmd instantiates the NewReleaseCmd subcommand and flags.
-func NewReleaseCmd() runner.SubCommand {
-	r := &ReleaseCmd{
-		cmd: &cobra.Command{
-			Use:          "release [flags] [glob|directory]",
-			Short:        "Creates a contract for Tekton resource files",
-			Long:         releaseLongDescription,
-			Args:         cobra.ArbitraryArgs,
-			SilenceUsage: true,
-		},
-	}
-
-	f := r.cmd.PersistentFlags()
-
-	f.StringVar(&r.version, "version", "", "release version")
-	f.StringVar(&r.output, "output", ".", "path to the release files (to attach to a given release)")
-	f.StringVar(&r.catalogName, "catalog-name", contract.Filename, "name for the catalog.yaml file")
-	f.StringVar(&r.resourcesName, "resources-tarball-name", contract.ResourcesName, "name for the catalog.yaml file")
-
-	if err := r.cmd.MarkPersistentFlagRequired("version"); err != nil {
-		panic(err)
-	}
-
-	return r
 }
 
 func copyFile(src, dst string) error {

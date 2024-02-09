@@ -6,7 +6,6 @@ import (
 	"runtime/debug"
 
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
-	"github.com/openshift-pipelines/catalog-cd/internal/runner"
 	"github.com/spf13/cobra"
 	tkncli "github.com/tektoncd/cli/pkg/cli"
 )
@@ -22,10 +21,10 @@ func NewRootCmd(stream *tkncli.Stream) *cobra.Command {
 
 	cfg := config.NewConfigWithFlags(stream, rootCmd.PersistentFlags())
 
-	rootCmd.AddCommand(runner.NewRunner(cfg, NewRenderCmd()).Cmd())
-	rootCmd.AddCommand(runner.NewRunner(cfg, NewVerifyCmd()).Cmd())
-	rootCmd.AddCommand(runner.NewRunner(cfg, NewReleaseCmd()).Cmd())
-	rootCmd.AddCommand(runner.NewRunner(cfg, NewSignCmd()).Cmd())
+	rootCmd.AddCommand(NewRenderCmd(cfg))
+	rootCmd.AddCommand(NewVerifyCmd(cfg))
+	rootCmd.AddCommand(NewReleaseCmd(cfg))
+	rootCmd.AddCommand(NewSignCmd(cfg))
 
 	rootCmd.AddCommand(CatalogCmd(cfg))
 

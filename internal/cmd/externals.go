@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,17 +10,13 @@ import (
 
 	"github.com/openshift-pipelines/catalog-cd/internal/config"
 	fc "github.com/openshift-pipelines/catalog-cd/internal/fetcher/config"
-	"github.com/openshift-pipelines/catalog-cd/internal/runner"
 	"github.com/spf13/cobra"
 )
 
-// ExternalsCmd represents the "externals" subcommand to externals the signature of a resource file.
-type ExternalsCmd struct {
-	cmd    *cobra.Command // cobra command definition
-	config string         // path for the catalog configuration file
+// externalsOptions represents the "externals" subcommand to externals the signature of a resource file.
+type externalsOptions struct {
+	config string // path for the catalog configuration file
 }
-
-var _ runner.SubCommand = &ExternalsCmd{}
 
 const externalsLongDescription = `# catalog-cd externals
 
@@ -27,37 +24,6 @@ Generate a GitHub matrix strategy-compatible json from an externals.yaml file.
 
   $ catalog-cd catalog externals --config=./externals.yaml
 `
-
-// Cmd exposes the cobra command instance.
-func (v *ExternalsCmd) Cmd() *cobra.Command {
-	return v.cmd
-}
-
-// Complete asserts the required flags are informed, and the last argument is the resource file for
-// signature verification.
-func (v *ExternalsCmd) Complete(_ *config.Config, args []string) error {
-	if v.config == "" {
-		return fmt.Errorf("flag --config is required")
-	}
-
-	if len(args) != 0 {
-		return fmt.Errorf("externals takes no argument")
-	}
-	return nil
-}
-
-// Validate asserts all the required files exists.
-func (v *ExternalsCmd) Validate() error {
-	required := []string{
-		v.config,
-	}
-	for _, f := range required {
-		if _, err := os.Stat(f); err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 type GitHubRunObject struct {
 	Name                 string `json:"name"`
@@ -72,9 +38,23 @@ type GitHubMatrixObject struct {
 	Include []GitHubRunObject `json:"include"`
 }
 
-// Run.
-func (v *ExternalsCmd) Run(cfg *config.Config) error {
-	e, err := fc.LoadExternal(v.config)
+func runCatalogExternals(_ context.Context, cfg *config.Config, args []string, o externalsOptions) error {
+	required := []string{
+		o.config,
+	}
+	for _, f := range required {
+		if _, err := os.Stat(f); err != nil {
+			return err
+		}
+	}
+	if o.config == "" {
+		return fmt.Errorf("flag --config is required")
+	}
+
+	if len(args) != 0 {
+		return fmt.Errorf("externals takes no argument")
+	}
+	e, err := fc.LoadExternal(o.config)
 	if err != nil {
 		return err
 	}
@@ -113,19 +93,20 @@ func (v *ExternalsCmd) Run(cfg *config.Config) error {
 }
 
 // NewCatalogExternalsCmd instantiates the "externals" subcommand.
-func NewCatalogExternalsCmd() runner.SubCommand {
-	v := &ExternalsCmd{
-		cmd: &cobra.Command{
-			Use:          "externals",
-			Args:         cobra.ExactArgs(0),
-			Long:         externalsLongDescription,
-			Short:        "Generate a GitHub matrix strategy-compatible json from an externals.yaml file.",
-			SilenceUsage: true,
+func NewCatalogExternalsCmd(cfg *config.Config) *cobra.Command {
+	o := externalsOptions{}
+	cmd := &cobra.Command{
+		Use:          "externals",
+		Args:         cobra.ExactArgs(0),
+		Long:         externalsLongDescription,
+		Short:        "Generate a GitHub matrix strategy-compatible json from an externals.yaml file.",
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runCatalogExternals(cmd.Context(), cfg, args, o)
 		},
 	}
 
-	f := v.cmd.PersistentFlags()
-	f.StringVar(&v.config, "config", v.config, "path of the catalog configuration file")
+	cmd.PersistentFlags().StringVar(&o.config, "config", "./externals.yaml", "path of the catalog configuration file")
 
-	return v
+	return cmd
 }
