@@ -72,7 +72,7 @@ func TestGenerateFilesystem(t *testing.T) {
 		Repositories: map[string]catalog.Repository{
 			"sbr-golang": map[string]catalog.Release{
 				"0.5.0": {
-					ResourcesURI: "https://fake.host/resources.tar.gz",
+					ResourcesURI: "https://fake.host/repo/resources.tar.gz",
 					Catalog: contract.Catalog{
 						Resources: &contract.Resources{
 							Tasks: []*contract.TektonResource{{

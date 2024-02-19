@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/api"
@@ -92,11 +94,10 @@ func fetchAndExtract(path string, release Release, version, resourceType string)
 	}
 	// Let's get the file we want to fetch from the release object
 	tektonResources := getResourcesFromType(release, resourceType)
-	return untar(path, version, tektonResources, resp.Body)
+	return untar(path, version, tektonResources, release.ResourcesURI, resp.Body) // Pass release.ResourcesURI to untar
 }
 
-// untar, filter and validate content.
-func untar(dst, version string, tektonResources map[string]contract.TektonResource, r io.Reader) error {
+func untar(dst, version string, tektonResources map[string]contract.TektonResource, resourcesURI string, r io.Reader) error {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {
 		return err
@@ -166,16 +167,101 @@ func untar(dst, version string, tektonResources map[string]contract.TektonResour
 			// to wait until all operations have completed.
 			f.Close()
 
-			if filename != "README.md" {
-				if tektonResource.Checksum != sum {
-					fmt.Fprintf(os.Stderr, "%s checksum is different than the specified checksum in the catalog file: %s", sum, tektonResource.Checksum)
-					// FIXME: maybe handle *all* file before erroring out ?
-					return fmt.Errorf("invalid checksum for %s: %s != %s", filename, sum, tektonResource.Checksum)
-				}
-				fmt.Fprintf(os.Stderr, "✅ %s\n", tektonResource.Filename)
+					if filename != "README.md" {
+							if tektonResource.Checksum != sum {
+									fmt.Fprintf(os.Stderr, "%s checksum is different than the specified checksum in the catalog file: %s", sum, tektonResource.Checksum)
+									// FIXME: maybe handle *all* file before erroring out ?
+									return fmt.Errorf("invalid checksum for %s: %s != %s", filename, sum, tektonResource.Checksum)
+							}
+							fmt.Fprintf(os.Stderr, "✅ %s\n", tektonResource.Filename)
+					}
+
+					// Add "source" annotation to task YAML file
+					if strings.HasSuffix(target, ".yaml") {
+							if err := addSourceAnnotationToTask(target, resourcesURI); err != nil {
+									return err
+							}
+					}
 			}
-		}
 	}
+	
+}
+
+func addSourceAnnotationToTask(file, resourcesURI string) error {
+	// Add the new annotation
+	repoURL := extractRepositoryURL(resourcesURI)
+
+	// Open the Task YAML file
+	f, err := os.OpenFile(file, os.O_RDWR, 0644)
+	if err != nil {
+			return err
+	}
+	defer f.Close()
+
+	// Create a scanner to read the file line by line
+	scanner := bufio.NewScanner(f)
+	var updatedContent []string
+
+	// Regular expression pattern to match the annotations in Task metadata
+	annotationsPattern := regexp.MustCompile(`^\s+annotations:\s*$`)
+	sourceAnnotationPattern := regexp.MustCompile(`^\s+tekton\.dev/source:\s*".*"$`)
+
+	// Flag to indicate if the "tekton.dev/source" annotation is already present
+	var sourceAnnotationExists bool
+
+	// Read the file line by line
+	for scanner.Scan() {
+			line := scanner.Text()
+
+			// Check if the line matches the annotations pattern
+			if annotationsPattern.MatchString(line) {
+					// If annotations block is found, initialize sourceAnnotationExists to false
+					sourceAnnotationExists = false
+			}else if !sourceAnnotationExists && sourceAnnotationPattern.MatchString(line) {
+					// If source annotation is found within annotations block, set sourceAnnotationExists to true
+					sourceAnnotationExists = true
+			}
+
+
+
+			// Append the line to updatedContent slice
+			updatedContent = append(updatedContent, line)
+
+			// Check if we are still within the annotations block
+			if !sourceAnnotationExists && annotationsPattern.MatchString(line) {
+					// Add the source annotation as the first line of the annotations block
+					updatedContent = append(updatedContent, fmt.Sprintf("    tekton.dev/source: \"%s\"", repoURL))
+					sourceAnnotationExists = true // Set sourceAnnotationExists to true after adding the annotation
+			}
+	}
+
+	// Check for scanner errors
+	if err := scanner.Err(); err != nil {
+			return err
+	}
+
+	// Clear the file content and write the updated content
+	if err := f.Truncate(0); err != nil {
+			return err
+	}
+	if _, err := f.Seek(0, 0); err != nil {
+			return err
+	}
+	writer := bufio.NewWriter(f)
+	for _, line := range updatedContent {
+			fmt.Fprintln(writer, line)
+	}
+	return writer.Flush()
+}
+
+// Function to extract repository URL from resource tarball URL
+func extractRepositoryURL(url string) string {
+	// Assuming the resource tarball URL format is consistent: https://github.com/{organization}/{repository}/releases/download/{version}/resources.tar.gz
+	parts := strings.Split(url, "/")
+	if len(parts) < 5 {
+		return ""
+	}
+	return strings.Join(parts[:5], "/")
 }
 
 func getResourcesFromType(release Release, resourceType string) map[string]contract.TektonResource {
@@ -199,3 +285,8 @@ func getResourcesFromType(release Release, resourceType string) map[string]contr
 	}
 	return m
 }
+
+
+
+
+
