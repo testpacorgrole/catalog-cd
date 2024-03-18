@@ -200,7 +200,7 @@ func addToArchive(tw *tar.Writer, filename, output string) error {
 	// If we don't do this the directory strucuture would
 	// not be preserved
 	// https://golang.org/src/archive/tar/common.go?#L626
-	header.Name = strings.TrimPrefix(filename, filepath.Base(output)+"/")
+	header.Name = strings.TrimPrefix(filename, filepath.Join(output, "/")+"/")
 
 	// Write file header to the tar archive
 	err = tw.WriteHeader(header)
