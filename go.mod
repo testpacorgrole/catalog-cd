@@ -3,7 +3,7 @@ module github.com/openshift-pipelines/catalog-cd
 go 1.21
 
 require (
-	github.com/cli/go-gh/v2 v2.6.0
+	github.com/cli/go-gh/v2 v2.7.0
 	github.com/go-errors/errors v1.5.1
 	github.com/onsi/gomega v1.32.0
 	github.com/sigstore/cosign/v2 v2.2.3
