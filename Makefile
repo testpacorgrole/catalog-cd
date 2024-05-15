@@ -1,7 +1,7 @@
 BIN = catalog-cd
 
 DOTBIN      = $(CURDIR)/.bin
-GOLANGCI_VERSION = v1.52.2
+GOLANGCI_VERSION = v1.58.0
 
 TIMEOUT_UNIT = 20m
 
