@@ -59,7 +59,7 @@ lint-go: $(GOLANGCILINT) ## runs go linter on all go files
 	@$(GOLANGCILINT) run ./... --modules-download-mode=vendor \
 							--max-issues-per-linter=0 \
 							--max-same-issues=0 \
-							--deadline $(TIMEOUT_UNIT)
+							--timeout $(TIMEOUT_UNIT)
 
 .PHONY: lint-shell
 lint-shell: ${SH_FILES} ## runs shellcheck on all python files
