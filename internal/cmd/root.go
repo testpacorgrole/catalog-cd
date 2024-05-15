@@ -38,7 +38,7 @@ func versionCmd(_ *config.Config) *cobra.Command {
 		Use:   "version",
 		Short: "Print catalog-cd version",
 		Long:  "Print catalog-cd version",
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			v := version()
 			if v == "" {
 				fmt.Fprintln(os.Stderr, "could not determine build information")
