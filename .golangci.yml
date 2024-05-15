@@ -1,18 +1,18 @@
 issues:
+  exclude-dirs:
+    - vendor
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
       linters:
         - gosec
-run:
-  skip-dirs:
-    - vendor
 linters-settings:
   gocritic:
     disabled-checks:
       - unlambda
   errcheck:
-    exclude: .errcheck.txt
+    exclude-functions:
+      - (net/http.ResponseWriter).Write
   gofumpt:
     extra-rules: true
 linters:
@@ -34,7 +34,7 @@ linters:
     - errchkjson
     - errname
     - errorlint
-    - execinquery
+    #- execinquery
     - exhaustive
     #- exhaustruct
     - exportloopref
