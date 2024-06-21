@@ -31,6 +31,8 @@ type Resources struct {
 	Tasks []*TektonResource `json:"tasks"`
 	// Pipelines List of Tekton Pipelines.
 	Pipelines []*TektonResource `json:"pipelines"`
+	// StepActions List of Tekton StepActions.
+	StepActions []*TektonResource `json:"stepactions"`
 }
 
 // ResourceSignFn function to perform the resource (file) signature. Parameters:
@@ -47,7 +49,7 @@ type ResourceVerifySignatureFn func(_ context.Context, _, _ string) error
 // SignResources runs the informed function against each catalog resource, the expected
 // signature file created is updated on "this" contract instance.
 func (c *Contract) SignResources(fn ResourceSignFn) error {
-	for _, r := range append(c.Catalog.Resources.Tasks, c.Catalog.Resources.Pipelines...) {
+	for _, r := range append(append(c.Catalog.Resources.Tasks, c.Catalog.Resources.Pipelines...), c.Catalog.Resources.StepActions...) {
 		signatureFile := fmt.Sprintf("%s.%s", r.Filename, SignatureExtension)
 		if err := fn(r.Filename, signatureFile); err != nil {
 			return err
@@ -60,7 +62,7 @@ func (c *Contract) SignResources(fn ResourceSignFn) error {
 // VerifyResources runs the informed function against each catalog resource, when error is
 // returned the signature verification process fail.
 func (c *Contract) VerifyResources(ctx context.Context, fn ResourceVerifySignatureFn) error {
-	for _, r := range append(c.Catalog.Resources.Tasks, c.Catalog.Resources.Pipelines...) {
+	for _, r := range append(append(c.Catalog.Resources.Tasks, c.Catalog.Resources.Pipelines...), c.Catalog.Resources.StepActions...) {
 		if err := fn(ctx, r.Filename, r.Signature); err != nil {
 			return err
 		}
@@ -71,7 +73,7 @@ func (c *Contract) VerifyResources(ctx context.Context, fn ResourceVerifySignatu
 // AddResourceFile adds a resource file on the contract, making sure it's a Tekton resource
 // file and uses the "kind" to guide on which attribute the resource will be appended.
 func (c *Contract) AddResourceFile(resourceFile, version string) error {
-	// parsing the resource as a kubernetes unstructured type to read it's name and kind
+	// parsing the resource as a kubernetes unstructured type to read its name and kind
 	u, err := resource.ReadAndDecodeResourceFile(resourceFile)
 	if err != nil {
 		return err
@@ -100,6 +102,8 @@ func (c *Contract) AddResourceFile(resourceFile, version string) error {
 		c.Catalog.Resources.Tasks = append(c.Catalog.Resources.Tasks, &tr)
 	case "Pipeline":
 		c.Catalog.Resources.Pipelines = append(c.Catalog.Resources.Pipelines, &tr)
+	case "StepAction":
+		c.Catalog.Resources.StepActions = append(c.Catalog.Resources.StepActions, &tr)
 	default:
 		return fmt.Errorf("%w: resource kind %q", ErrTektonResourceUnsupported, kind)
 	}

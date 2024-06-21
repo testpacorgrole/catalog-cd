@@ -272,11 +272,18 @@ func getResourcesFromType(release Release, resourceType string) map[string]contr
 		for _, r := range release.Catalog.Resources.Pipelines {
 			m[r.Filename] = *r
 		}
+	case "stepactions":
+		for _, r := range release.Catalog.Resources.StepActions {
+			m[r.Filename] = *r
+		}
 	case "":
 		for _, r := range release.Catalog.Resources.Tasks {
 			m[r.Filename] = *r
 		}
 		for _, r := range release.Catalog.Resources.Pipelines {
+			m[r.Filename] = *r
+		}
+		for _, r := range release.Catalog.Resources.StepActions {
 			m[r.Filename] = *r
 		}
 	}
