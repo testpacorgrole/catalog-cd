@@ -80,8 +80,9 @@ func NewContractEmpty() *Contract {
 			Repository:  &Repository{},
 			Attestation: &Attestation{},
 			Resources: &Resources{
-				Tasks:     []*TektonResource{},
-				Pipelines: []*TektonResource{},
+				Tasks:       []*TektonResource{},
+				Pipelines:   []*TektonResource{},
+				StepActions: []*TektonResource{},
 			},
 		},
 	}

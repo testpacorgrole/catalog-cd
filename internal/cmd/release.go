@@ -49,17 +49,18 @@ resources in scope.
 `
 
 func runRelease(_ context.Context, cfg *config.Config, args []string, o releaseOptions) error {
-	// making sure the output flag is informed before attempt to search files
+	// Ensure the output flag is informed before attempting to search files
 	if o.output == "" {
 		return fmt.Errorf("--output flag is not informed")
 	}
+
 	o.paths = args
 	if len(o.paths) == 0 {
 		return fmt.Errorf("no tekton resource paths have been found")
 	}
 	fmt.Fprintf(cfg.Stream.Err, "# Found %d path to inspect!\n", len(o.paths))
 	c := contract.NewContractEmpty()
-	// going through the pattern slice collected before to select the tekton resource files
+	// Going through the pattern slice collected before to select the tekton resource files
 	// to be part of the current release, in other words, release scope
 	fmt.Fprintf(cfg.Stream.Err, "# Scan Tekton resources on: %s\n", strings.Join(o.paths, ", "))
 	for _, p := range o.paths {
@@ -103,10 +104,11 @@ func runRelease(_ context.Context, cfg *config.Config, args []string, o releaseO
 	catalogPath := filepath.Join(o.output, o.catalogName)
 	fmt.Fprintf(cfg.Stream.Err, "# Saving release contract at %q\n", catalogPath)
 	if err := c.SaveAs(catalogPath); err != nil {
+		fmt.Fprintf(cfg.Stream.Err, "# ERROR: Failed to save catalog.yaml: %v\n", err)
 		return err
 	}
 
-	// Create a tarball (without catalog.yaml
+	// Create a tarball (without catalog.yaml)
 	tarball := filepath.Join(o.output, o.resourcesName)
 	fmt.Fprintf(cfg.Stream.Err, "# Creating tarball at %q\n", tarball)
 	return createTektonResourceArchive(tarball, o.catalogName, o.resourcesName, o.output)

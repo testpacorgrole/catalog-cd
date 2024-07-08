@@ -30,7 +30,7 @@ func isResourceSupported(u *unstructured.Unstructured) error {
 			ErrTektonResourceUnsupported, version)
 	}
 	kind := u.GetKind()
-	if kind != "Task" && kind != "Pipeline" {
+	if kind != "Task" && kind != "Pipeline" && kind != "StepAction" {
 		return fmt.Errorf("%w: unsupported kind %q", ErrTektonResourceUnsupported, kind)
 	}
 	return nil

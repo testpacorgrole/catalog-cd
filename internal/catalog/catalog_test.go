@@ -87,6 +87,12 @@ func TestGenerateFilesystem(t *testing.T) {
 								Checksum: "e84e01f61a25aee509a4e3513b19f8f33a865eed60fd17647b56df8b716edfde",
 							}},
 							Pipelines: []*contract.TektonResource{},
+							StepActions: []*contract.TektonResource{{
+								Name:     "git-clone",
+								Version:  "0.5.0",
+								Filename: "stepactions/git-clone/git-clone.yaml",
+								Checksum: "80ea4b192ecaf71b08171f7fa62cebc3e08cf6a77c669d3f1188251470b49da2",
+							}},
 						},
 					},
 				},
@@ -110,7 +116,15 @@ func TestGenerateFilesystem(t *testing.T) {
 				fs.WithFile("README.md", "", fs.WithBytes(golden.Get(t, "tasks/go-ko-image/README.md"))),
 			),
 		),
-	))
+	),
+		fs.WithDir("stepactions",
+			fs.WithDir("git-clone",
+				fs.WithDir("0.5.0",
+					fs.WithFile("git-clone.yaml", "", fs.WithBytes(golden.Get(t, "stepactions/git-clone/git-clone.yaml"))),
+					fs.WithFile("README.md", "", fs.WithBytes(golden.Get(t, "stepactions/git-clone/README.md"))),
+				),
+			),
+	  ))
 
 	assert.Assert(t, fs.Equal(dir.Path(), expected))
 }
