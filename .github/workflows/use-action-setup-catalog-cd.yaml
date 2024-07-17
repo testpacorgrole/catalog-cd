@@ -3,7 +3,7 @@ name: use setup-catalog-cd action
 on:
   push:
     branches:
-      - 'main'
+      - 'stepactions'
 
 jobs:
   use-action:
@@ -26,20 +26,20 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       # Minimal publish
-      - uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd@main
+      - uses: testpacorgrole/catalog-cd/actions/setup-catalog-cd@main
 
       - run: catalog-cd version
 
-      - name: Install v0.1.2 release
-        uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd@main
+      - name: Install v1.1.1 release
+        uses: testpacorgrole/catalog-cd/actions/setup-catalog-cd@main
         with:
-          version: v0.1.2
+          version: v1.1.1
 
       - name: Check installed version
-        run: catalog-cd version | grep 0.1.2
+        run: catalog-cd version | grep 1.1.1
 
       - name: Install from tip
-        uses: openshift-pipelines/catalog-cd/actions/setup-catalog-cd@main
+        uses: testpacorgrole/catalog-cd/actions/setup-catalog-cd@main
         with:
           version: tip
 
